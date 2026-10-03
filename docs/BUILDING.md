@@ -13,8 +13,7 @@ git switch main
 git submodule update --init deps/libapps
 ```
 
-For the prebuilt dependency changes before their PR is merged, use
-`feature/prebuilt-dependencies`. Pins and licenses are in [UPSTREAM.md](../UPSTREAM.md). `deps/linux` is retained but intentionally
+Pins and licenses are in [UPSTREAM.md](../UPSTREAM.md). `deps/linux` is retained but intentionally
 not initialized/built for this userspace application. Never select inherited
 Linux-kernel build configurations. Use the `iSH-ARM64` app scheme and `kernel=ish`.
 
@@ -78,11 +77,51 @@ identities or disable iOS security. No new entitlements were added here.
 
 Legacy Fastlane publishing is deliberately blocked before any lane executes.
 Its historical lane bodies remain for attribution; its Appfile/Matchfile have
-no upstream account or certificate repository configured. Use local xcodebuild;
-Codemagic configuration and release automation are deferred. Future caches can
-retain submodules, `build-data/prebuilt` (or the configured prebuilt cache),
-verified rootfs downloads and SDK/configuration-specific
-DerivedData; never cache signing credentials in this repository.
+no upstream account or certificate repository configured. Use local xcodebuild
+or the Codemagic workflow below. Store signing credentials outside this repository.
+
+## Codemagic unsigned build
+
+[The root codemagic.yaml](../codemagic.yaml) defines `linpad-ios-unsigned`, a manual
+workflow on an Apple Silicon M2 macOS builder with `xcode: latest`. It calls the
+same `scripts/build-ios.sh` used locally. **Configuration added; no Codemagic or
+Apple build has been executed in this Linux session.** The YAML passed Codemagic's
+official JSON schema, all shell steps passed syntax checks, and a failing build
+control retained its error status/log through `tee`. These checks do not establish
+Apple compilation or successful IPA packaging.
+
+1. Connect `hazerbvisor/Linpad` in Codemagic and use its repository YAML configuration.
+2. Select `feature/codemagic-ios` until this PR is merged; afterward select `main`.
+3. Start workflow `linpad-ios-unsigned` manually. No automatic triggers are configured.
+4. Download `Linpad-unsigned.ipa`, `xcodebuild.log`, the toolchain/dependency logs
+   and `Linpad-build.xcresult` from build artifacts. Logs and any generated result
+   bundle are collected on failure too; the IPA is produced only after a successful build.
+
+The workflow installs Meson, Ninja and Python, initializes only the pinned
+`deps/libapps` submodule, verifies/downloads the pinned libarchive, runs the eleven
+prebuilt regression checks, then builds the `iSH-ARM64` Release scheme for a generic
+iOS ARM64 device. The Xcode phases verify the guest VDSO and download/verify Alpine
+AArch64. They do not compile a Linux kernel or guest applications.
+
+`build-data/prebuilt` is cached and revalidated each run. DerivedData and Meson
+build directories are fresh for each run, preventing SDK/toolchain cache mixing;
+the rootfs downloader currently downloads and validates the small minirootfs on
+each app build. No signing secrets, provisioning profiles or credentials are needed
+for this workflow. `LINPAD_BUNDLE_ID` is configurable in YAML and defaults to
+`org.linpad.Linpad`; no developer Team ID is configured.
+
+The packaged IPA contains the real compiled `.app` and its embedded extension in
+`Payload/`; its executable architecture and bundle identifier are checked before
+packaging. **It is unsigned and cannot be installed directly on an ordinary iPad.**
+Use a normal sideload signing process with your own identity and matching app-group
+and extension provisioning. Creating a ZIP/IPA does not sign it or prove Alpine boots.
+A signed Codemagic export workflow needs your own signing configuration separately.
+
+`latest` lets the first build use Codemagic's current stable Xcode, appropriate for
+the binary dependency's recent SDK metadata. The toolchain log records the selected
+Xcode/SDK; after a successful build, pin that verified version in YAML for repeatability.
+Codemagic may require selecting an available compatible Xcode image in its UI.
+No App Store publishing, notifications or GitHub Actions are configured.
 
 ## AArch64 Linux development host
 

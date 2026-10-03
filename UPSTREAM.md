@@ -26,7 +26,9 @@ retain it for a future normal Git import. No bundle is added to the application
 or tracked source tree.
 
 The import omits the upstream Actions workflow and funding configuration. No
-GitHub Actions, Codemagic configuration or publication automation was added.
+GitHub Actions, Codemagic configuration or publication automation was added
+during bootstrap. A later explicit user request adds `codemagic.yaml` for a
+manual unsigned ARM64 app build; it contains no signing credentials or publishing.
 `README.upstream.md` and `docs/ARCHITECTURE.upstream.md` preserve the imported guides.
 Other upstream documentation and dated reports remain attributed historical evidence.
 
@@ -98,6 +100,8 @@ binaries, private APIs, entitlements or package recipes were copied.
 - Repo-relative default benchmark/report paths.
 - Optional Alpine X11 package installer, headless xclock capture and executable
   GUI syscall prerequisite probes, separate from the runtime.
+- Manual Codemagic Apple Silicon workflow for unsigned ARM64 compilation,
+  verified prebuilt caching, logs/result bundles and unsigned IPA packaging.
 - Architecture, build, audit, validation and roadmap documentation with explicit
   working/experimental/planned/unsupported status.
 

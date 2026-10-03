@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Start manually in Codemagic. The IPA must be signed before installation.
+workflows:
+  linpad-ios-unsigned:
+    name: Linpad ARM64 iPadOS — unsigned
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      xcode: latest
+      vars:
+        LINPAD_BUNDLE_ID: org.linpad.Linpad
+    cache:
+      cache_paths:
+        - $CM_BUILD_DIR/build-data/prebuilt
+    scripts:
+      - name: Check Apple Silicon and Xcode
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          mkdir -p artifacts
+          if [ "$(uname -s)" != Darwin ] || [ "$(uname -m)" != arm64 ]; then
+            echo "Linpad requires an Apple Silicon macOS builder." >&2
+            exit 1
+          fi
+          {
+            git rev-parse HEAD
+            uname -sm
+            xcodebuild -version
+            xcrun --sdk iphoneos --show-sdk-version
+          } | tee artifacts/toolchain.log
+      - name: Install build tools and pinned terminal dependency
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          export HOMEBREW_NO_AUTO_UPDATE=1
+          brew install meson ninja python
+          git submodule update --init deps/libapps
+          . app/build-tools.sh
+          {
+            meson --version
+            ninja --version
+            python3 --version
+            git submodule status deps/libapps
+          } | tee artifacts/dependencies.log
+      - name: Verify prebuilt artifacts and regression checks
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          . app/build-tools.sh
+          python3 scripts/prepare-prebuilt.py
+          python3 -m unittest discover -s tests/linpad -p 'test_prebuilt.py'
+      - name: Build unsigned ARM64 iPadOS app
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          sh scripts/build-ios.sh \
+            ROOT_BUNDLE_IDENTIFIER="$LINPAD_BUNDLE_ID" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM= \
+            -resultBundlePath "$CM_BUILD_DIR/artifacts/Linpad-build.xcresult" \
+            2>&1 | tee artifacts/xcodebuild.log
+      - name: Package unsigned IPA
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          app_bundle="$CM_BUILD_DIR/build-ios/Build/Products/Release-iphoneos/Linpad.app"
+          test -d "$app_bundle"
+          app_executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_bundle/Info.plist")
+          app_identifier=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_bundle/Info.plist")
+          test "$app_identifier" = "$LINPAD_BUNDLE_ID"
+          test "$(xcrun lipo -archs "$app_bundle/$app_executable")" = arm64
+          package_dir="$CM_BUILD_DIR/build-ios/unsigned-package"
+          mkdir -p "$package_dir/Payload"
+          ditto "$app_bundle" "$package_dir/Payload/Linpad.app"
+          cd "$package_dir"
+          ditto -c -k --keepParent Payload "$CM_BUILD_DIR/artifacts/Linpad-unsigned.ipa"
+          echo "Unsigned IPA created. Sign the app and embedded extension before installation."
+    artifacts:
+      - artifacts/Linpad-unsigned.ipa
+      - artifacts/*.log
+      - artifacts/Linpad-build.xcresult
