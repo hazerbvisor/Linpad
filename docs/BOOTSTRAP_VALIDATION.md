@@ -6,8 +6,11 @@ no attached AArch64 execution host and no iPad. Foundation:
 
 ## What passed
 
-- Linpad original `LICENSE` unchanged; import merge retains upstream revision
-  as an ancestor and all three dependency gitlinks.
+- Linpad original `LICENSE` unchanged; local import merge retains upstream
+  revision as an ancestor and all three dependency gitlinks. Git publishing
+  returned HTTP 401; the API-published review branch preserves the exact import
+  tree and separate changes, with full history retained locally/in a Git bundle.
+  Its remote import commit has only Linpad's main commit as parent.
 - Imported baseline `libish.a`, `libish_emu.a`, `libfakefs.a` and real AArch64
   ELF VDSO compiled with Clang 19.1.7/LLD 19.1.7, Meson 1.7.0/Ninja 1.12.1.
   The Linux CLI was first manually linked because upstream excludes executables

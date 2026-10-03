@@ -13,9 +13,18 @@ That original GPL-3.0 file is preserved byte-for-byte.
 - Source version: ios-linuxkit 2.4.1, build 818.
 - Earlier iSH origin: https://github.com/ish-app/ish
 
-The bootstrap is an explicit merge of unrelated histories on
-`feature/bootstrap-ios-linuxkit`. Upstream commits and authors remain ancestors
-of the import commit; upstream source is not represented as original Linpad work.
+The local bootstrap used an explicit merge of unrelated histories, preserving
+upstream commits/authors as ancestors. Git smart-HTTP publishing returned HTTP
+401 even though the authenticated GitHub API reported repository write access.
+The review branch was therefore published through the GitHub Git Objects API
+as an attributed snapshot, followed by separate Linpad commits. Its initial
+import tree matches the local merge import tree exactly, but its commit parents
+do not include upstream history. This transport limitation is not a claim of
+original Linpad authorship. Full upstream history remains available from the
+source repository; the local merge branch and `Linpad-upstream-history.bundle`
+retain it for a future normal Git import. No bundle is added to the application
+or tracked source tree.
+
 The import omits the upstream Actions workflow and funding configuration. No
 GitHub Actions, Codemagic configuration or publication automation was added.
 `README.upstream.md` and `docs/ARCHITECTURE.upstream.md` preserve the imported guides.
