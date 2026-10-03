@@ -20,6 +20,8 @@ int_t sys_accept4(fd_t sock_fd, addr_t sockaddr_addr, addr_t sockaddr_len_addr, 
 int_t sys_getsockname(fd_t sock_fd, addr_t sockaddr_addr, addr_t sockaddr_len_addr);
 int_t sys_getpeername(fd_t sock_fd, addr_t sockaddr_addr, addr_t sockaddr_len_addr);
 int_t sys_socketpair(dword_t domain, dword_t type, dword_t protocol, addr_t sockets_addr);
+int_t sys_send(fd_t sock_fd, addr_t buf, dword_t len, int_t flags);
+int_t sys_recv(fd_t sock_fd, addr_t buf, dword_t len, int_t flags);
 int_t sys_sendto(fd_t sock_fd, addr_t buffer_addr, dword_t len, dword_t flags, addr_t sockaddr_addr, dword_t sockaddr_len);
 int_t sys_recvfrom(fd_t sock_fd, addr_t buffer_addr, dword_t len, dword_t flags, addr_t sockaddr_addr, addr_t sockaddr_len_addr);
 int_t sys_shutdown(fd_t sock_fd, dword_t how);

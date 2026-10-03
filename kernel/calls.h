@@ -316,10 +316,11 @@ dword_t sys_getrandom(addr_t buf_addr, dword_t len, dword_t flags);
 int_t sys_syslog(int_t type, addr_t buf_addr, int_t len);
 int_t sys_ipc(uint_t call, int_t first, int_t second, int_t third, addr_t ptr, int_t fifth);
 
-// ARM64 syscalls pass 64-bit register values; functions taking dword_t
-// will implicitly truncate, while those taking off_t_/qword_t get full values.
-// Returns int64_t so addr_t-returning syscalls (mmap, brk) can pass 48-bit values.
+// ARM64 entries receive six full-width guest registers and return int64_t.
+// Typed adapters call each implementation through its declared prototype,
+// preserving argument widths and full-width mmap/brk/lseek results.
 typedef int64_t (*syscall_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+extern const syscall_t syscall_stub_entry;
 
 // Stub for unimplemented syscalls
 dword_t syscall_stub(void);
