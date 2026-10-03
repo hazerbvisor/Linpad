@@ -192,3 +192,50 @@ Codemagic keeps the complete log and an error/context summary while preserving
 the failed build status. Required next evidence remains a successful full Xcode
 26.6/iPhoneOS 26.5 app build on the new branch, then signed installation and Alpine
 CLI launch. No app execution, GUI, new JIT requirement or GPU acceleration is claimed.
+
+## Blank-screen startup repair
+
+After PR #5 was merged, the user reported an installed app opening to a black
+screen. The screenshot alone does not establish the guest boot state or installed
+revision. Branch `fix/visible-startup` started from updated main.
+
+A real browser load reproduced a deterministic frontend failure: term.html uses
+classic script tags, but ghostty-web.js contains top-level ES exports. The script
+throws `Unexpected token 'export'`; term.js then throws because window.ghosttyWeb
+is undefined, and no terminal-ready message arrives. The existing classic
+xterm.js Canvas page passed, so the ARM64 configuration now selects it without
+new downloads or dependency compilation. Vendored code/licenses are unchanged.
+
+Other startup repairs address independently identified launch hazards:
+
+- App Group lookup now uses the configured identifier and the public OS container
+  API. Missing/stripped entitlements fall back to the main app's own sandbox.
+  The unchecked code-signature parser is removed; the Files extension requires
+  shared storage and declines access when it is unavailable.
+- Alpine import/boot starts after native UIKit presentation, on a worker. Main
+  never waits for that worker; Roots can safely marshal collection updates to it.
+  Terminal sessions wait for boot completion, including restoration. Reachability
+  callbacks wait for a valid boot, avoiding an uninitialized guest task.
+- Root-directory/import/missing-archive failures propagate beyond release-disabled
+  assertions. Native startup status, init-exit handling, WebKit navigation/process
+  errors and JavaScript/missing-script errors produce a visible report. The report
+  includes the git revision embedded by scripts/build-ios.sh.
+
+Validation completed here:
+
+- All seven changed native implementation files compiled into ARM64 iOS Mach-O
+  objects with Clang 19 and actual public iPhoneOS 16.5 reference headers, ARC,
+  blocks and the xterm.js selection. Initial scratch-header acquisition failures
+  were corrected (UIKit dependency count and WebKit's SDK Cryptex symlink).
+- The Foundation storage fallback control compiled against iOS headers. Codemagic
+  is configured to execute it on native macOS; it has not run on an Apple host here.
+- Chromium loaded the real bundled xterm.js assets over local HTTP, emitted the
+  ready message with nonzero dimensions and drew control text into Canvas pixels.
+  Injected JavaScript errors and a missing vendor script reached the native-error
+  channel. The retained optional browser test checks these paths; no Linux guest
+  was involved. Local file navigation was blocked by the development browser's
+  policy, so this is not a WKWebView file-origin check.
+
+A complete current Xcode app build, signed installation and on-iPad Alpine shell
+still require a rerun. A JavaScript terminal renderer is not the Linux X11 xterm
+application, an X11 bridge, Metal presentation or application GPU acceleration.

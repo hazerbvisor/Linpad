@@ -71,7 +71,7 @@ The build downloads from the network. Pin and review a new rootfs URL in `app/Gu
 
 ## Terminal frontend
 
-`app/Terminal.m` hosts the terminal in `WKWebView`. The default ARM64 configuration loads `app/terminal/term.html`, which uses the vendored Ghostty Web JavaScript/Wasm frontend. `app/XtermRenderer.xcconfig` defines `USE_XTERM_RENDERER=1` for targets that need the alternative vendored xterm.js page.
+`app/Terminal.m` hosts the terminal in `WKWebView`. Linpad's ARM64 configuration includes `app/XtermRenderer.xcconfig` and loads the vendored classic xterm.js Canvas frontend in `app/terminal/xterm-term.html`. The imported Ghostty ES module remains available for research, but its classic-script loader failed during the launch audit. This host terminal frontend is separate from the Linux X11 xterm application. Native startup status and errors appear before guest boot; [building and sideloading](BUILDING.md#startup-and-sideloading) describes storage fallback and diagnostic reports.
 
 Terminal preferences pass the palette, font family, font size, cursor colour, blink setting and cursor shape into the web frontend. The bundle includes JetBrains Mono and Fira Code Nerd Font Mono files. The native bridge registers `load`, `log`, `sendInput`, `resize` and `propUpdate` message handlers; changes to its JavaScript messages must be checked against the corresponding Objective-C handler.
 

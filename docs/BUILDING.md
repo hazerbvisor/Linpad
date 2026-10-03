@@ -94,7 +94,7 @@ The YAML passed Codemagic's official JSON schema, all shell steps passed syntax
 checks, and a failing build control retained its error status/log through `tee`.
 
 1. Connect `hazerbvisor/Linpad` in Codemagic and use its repository YAML configuration.
-2. Select `fix/apple-build-audit` to test the build/dispatch fixes before their PR is
+2. Select `fix/visible-startup` to test the startup/display fixes before their PR is
    merged; afterward select `main`.
 3. Start workflow `linpad-ios-unsigned` manually. No automatic triggers are configured.
 4. Download `Linpad-unsigned.ipa`, `xcodebuild.log`, `build-errors.log`, the toolchain/dependency logs
@@ -227,3 +227,42 @@ checked app-owned bind mount), then follow [GUI_COMPATIBILITY.md](GUI_COMPATIBIL
 The checked-in scripts are not injected into every user's rootfs. A future
 integration can provide an explicit guest installer from app resources after
 its build and package behavior is verified.
+
+## Startup and sideloading
+
+The ARM64 app now selects the already bundled **xterm.js Canvas terminal frontend**.
+This displays guest terminal bytes; it is separate from the Linux X11 `xterm`
+application and does not meet the GUI milestone. The imported default Ghostty
+artifact is an ES module loaded as a classic script, which failed before terminal
+initialization in a browser control.
+
+Alpine import and boot begin on a worker after UIKit presents the native Linpad
+screen. Session creation waits for boot completion. The startup screen shows the
+current stage and offers **Copy startup report** if loading stalls or fails. Paste
+that report when reporting a launch failure; it includes the build revision, boot
+stage/error, executable paths, frontend error and storage mode. It does not upload
+anything automatically. A working terminal hides the startup screen and stops its
+poll timer; WebKit errors remain observable.
+
+A provisioned App Group is optional for the main app. With a granted group,
+Linpad uses its shared container; otherwise it stores roots in its own sandbox's
+Application Support/Linpad directory. The Files extension requires the shared
+group and returns an authentication error when it is unavailable. Re-signing does
+not require parsing the Mach-O code signature or adding sandbox permissions.
+`PRODUCT_APP_GROUP_IDENTIFIER` remains configurable; neither it nor the bundle
+identifier grants an entitlement by itself.
+
+Codemagic compiles and runs a native Foundation storage fallback control. Local
+optional browser checks use Playwright (HTTP asset loading on Chromium, not
+WKWebView/device validation):
+
+```sh
+python3 -m pip install playwright
+python3 -m playwright install chromium
+python3 tests/linpad/terminal-frontend.py
+```
+
+This checks the real bundled classic frontend's ready message, Canvas pixels,
+nonzero dimensions and JavaScript/missing-resource error reporting. It feeds
+control text, not a Linux process. Signed on-iPad Alpine execution is still the
+next required check.

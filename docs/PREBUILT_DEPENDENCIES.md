@@ -10,7 +10,7 @@ There is no verified reusable ios-linuxkit ARM64 runtime binary being substitute
 | iOS libarchive | Download/cache v1.0.0 binary package, link selected static slice | Actual archive/member hashes, ARM64 Mach-O and targeted iOS link with fakefs client checked; full app link and rootfs import pending |
 | Guest AArch64 VDSO | Validate and reuse 3,080-byte checked-in ELF | Fresh ARM64 Linux cross-build passed; source rebuild produced identical bytes |
 | Alpine AArch64 rootfs and GUI packages | Use Alpine's existing minirootfs/APK binaries | No guest package compilation required; app/runtime compatibility still needs device tests |
-| Ghostty terminal JS/WASM/fonts | Retain upstream vendored assets | Already built; these display terminal text |
+| xterm.js Canvas / Ghostty JS/WASM / fonts | Retain upstream vendored assets | ARM64 uses the already compiled classic xterm.js bundle; Ghostty retained for research |
 | UIKit/Metal/system libraries | Use the Apple SDK | Supplied by Apple; no third-party replacement |
 | Linpad native app/runtime | Compile locally or on an Apple Silicon macOS builder | No IPA or device execution validated in this Linux session |
 

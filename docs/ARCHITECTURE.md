@@ -9,7 +9,7 @@ The detailed imported runtime design is preserved in
 Apple Silicon iPad / native iPadOS app (host sandbox and host kernel)
   -> ARM64 ios-linuxkit / iSH syscall compatibility + Asbestos gadgets
   -> Alpine AArch64 userspace / ordinary Linux ELF programs
-  -> terminal frontend today
+  -> bundled xterm.js Canvas terminal frontend today
   -> X11 -> display bridge -> native presentation                 [Planned]
 ```
 
@@ -55,3 +55,17 @@ Do not broaden entitlements or sandbox access for display functionality.
 Terminal-only launch remains the default. Desktop packages and session processes
 must remain opt-in, with foreground/background and memory-pressure behavior tested
 on the exact signed app before distribution.
+
+## Native startup
+
+For the default compatibility-runtime target, UIKit presents a native startup
+screen before a worker imports/mounts Alpine and loads init. Completion on the
+main queue gates scene session creation, including restored scenes; guest boot
+errors, init exit and WebKit/frontend failures remain visible. The UIKit screen
+and report belong to app/, without new UI dependencies in the runtime.
+
+Shared App Group storage is used when the OS grants it. A normal sideload without
+that grant uses private app-owned Application Support storage; the Files provider
+is unavailable in that mode. Configured identifiers are resolved through public
+Foundation APIs, not an unchecked code-signature parser. The guest root still
+uses the imported fakefs implementation.
