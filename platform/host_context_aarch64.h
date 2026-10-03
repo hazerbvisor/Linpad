@@ -3,7 +3,13 @@
 
 #include <signal.h>
 #include <stdint.h>
+#if defined(__APPLE__)
+// Signal-context types only; <ucontext.h> gates deprecated context-switch APIs
+// behind _XOPEN_SOURCE, which would also change Darwin feature visibility.
+#include <sys/ucontext.h>
+#else
 #include <ucontext.h>
+#endif
 
 #if defined(__linux__) && defined(__aarch64__)
 #include <asm/sigcontext.h>

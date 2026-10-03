@@ -91,6 +91,10 @@ binaries, private APIs, entitlements or package recipes were copied.
 - Verified prebuilt iOS libarchive with bundled license notices; cached download
   and selected-slice linking replace the ARM64 app's libarchive source build.
 - Validated guest VDSO reuse with source/header pins and an explicit rebuild path.
+- Use Apple's public signal-context type header in ARM64 host helpers, avoiding
+  the deprecated context-switch API header's feature-macro error; check helpers
+  against macOS/iOS SDKs before the Codemagic app build.
+- Align shared Xcode deployment minimum with the existing ARM64 iOS 15 minimum.
 - Portable Xcode tool discovery; remove personal tool paths and signing teams.
 - ARM64-only host diagnostics and a Linux cross-compilation CLI target.
 - Standalone fakefsify logging to repair the packaging tool's unresolved symbols;
