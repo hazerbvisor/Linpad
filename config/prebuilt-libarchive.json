@@ -1,0 +1,55 @@
+{
+  "version": "1.0.0",
+  "source": "https://github.com/matteo-pacini/libarchive-for-swift/tree/v1.0.0",
+  "url": "https://github.com/matteo-pacini/libarchive-for-swift/releases/download/v1.0.0/libarchive.xcframework.zip",
+  "sha256": "1db0e56d929358547d3d5cc37646d53bc8c26ff8b54071ed06d2a7eda8f6d416",
+  "size": 71858183,
+  "minimum_ios": "15.0",
+  "files": [
+    {
+      "path": "libarchive.xcframework/ios-arm64_x86_64-simulator/libarchive.a",
+      "sha256": "fafbd6f16f2a358e97e7a3dc59f9f18f6dac619e9a268b47a762c46e1bfa662f",
+      "size": 24713480
+    },
+    {
+      "path": "libarchive.xcframework/ios-arm64_x86_64-simulator/Headers/archive.h",
+      "sha256": "00f5d3ef02542940c2ef267ecd470cc9ef9fb8c05bdd77f55d3a7b3e0b55f30b",
+      "size": 56094
+    },
+    {
+      "path": "libarchive.xcframework/ios-arm64_x86_64-simulator/Headers/archive_entry.h",
+      "sha256": "f720698c6d88a3a5a7aafeaeaf39ae502bdcea87a5bd983cb8cc53413d476194",
+      "size": 35426
+    },
+    {
+      "path": "libarchive.xcframework/ios-arm64_x86_64-simulator/Headers/module.modulemap",
+      "sha256": "e8d76f233acc145cf091d52f490726dd87cdaa9a650ee23eebc8f52d3bc6f243",
+      "size": 139
+    },
+    {
+      "path": "libarchive.xcframework/ios-arm64/libarchive.a",
+      "sha256": "569b614b2a1fd03b93f0751a2da89f0786cfeb0f9edf2e33a052715ddddf7fa7",
+      "size": 11930432
+    },
+    {
+      "path": "libarchive.xcframework/ios-arm64/Headers/archive.h",
+      "sha256": "00f5d3ef02542940c2ef267ecd470cc9ef9fb8c05bdd77f55d3a7b3e0b55f30b",
+      "size": 56094
+    },
+    {
+      "path": "libarchive.xcframework/ios-arm64/Headers/archive_entry.h",
+      "sha256": "f720698c6d88a3a5a7aafeaeaf39ae502bdcea87a5bd983cb8cc53413d476194",
+      "size": 35426
+    },
+    {
+      "path": "libarchive.xcframework/ios-arm64/Headers/module.modulemap",
+      "sha256": "e8d76f233acc145cf091d52f490726dd87cdaa9a650ee23eebc8f52d3bc6f243",
+      "size": 139
+    },
+    {
+      "path": "libarchive.xcframework/Info.plist",
+      "sha256": "61e264952ca84842e2236db9a6ac43bec278d4dc638525d093d905e4f0457e82",
+      "size": 4978
+    }
+  ]
+}

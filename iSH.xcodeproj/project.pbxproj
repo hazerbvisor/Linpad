@@ -340,6 +340,7 @@
 		BBFB2C7E259026C200545EAB /* libish_emu.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BBFB2C5B2590257E00545EAB /* libish_emu.a */; };
 		BBFB2CEC2590296B00545EAB /* libish_emu.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BBFB2C5B2590257E00545EAB /* libish_emu.a */; };
 		BBFB55662158644C00DFE6DE /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = BBFB55652158644C00DFE6DE /* libresolv.tbd */; };
+		DD000001AF96D90D00FFB7A4 /* ThirdPartyNotices.bundle in Resources */ = {isa = PBXBuildFile; fileRef = DD000002AF96D90D00FFB7A4 /* ThirdPartyNotices.bundle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -871,6 +872,7 @@
 		BBFB557B215878C600DFE6DE /* UIApplication+OpenURL.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "UIApplication+OpenURL.m"; sourceTree = "<group>"; };
 		BBFB557E21587B6800DFE6DE /* ArrowBarButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ArrowBarButton.h; sourceTree = "<group>"; };
 		BBFB557F21587B6800DFE6DE /* ArrowBarButton.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ArrowBarButton.m; sourceTree = "<group>"; };
+		DD000002AF96D90D00FFB7A4 /* ThirdPartyNotices.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = app/ThirdPartyNotices.bundle; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -890,10 +892,8 @@
 				AA000037AF96D90D00FFB7A4 /* libish.a in Frameworks */,
 				AA000038AF96D90D00FFB7A4 /* libfakefs.a in Frameworks */,
 				AA000039AF96D90D00FFB7A4 /* libish_emu.a in Frameworks */,
-				AA000031AF96D90D00FFB7A4 /* libarchive.a in Frameworks */,
 				AA000032AF96D90D00FFB7A4 /* CoreLocation.framework in Frameworks */,
 				AA000033AF96D90D00FFB7A4 /* SystemConfiguration.framework in Frameworks */,
-				AA000034AF96D90D00FFB7A4 /* libbz2.tbd in Frameworks */,
 				AA000035AF96D90D00FFB7A4 /* libiconv.tbd in Frameworks */,
 				AA000036AF96D90D00FFB7A4 /* libresolv.tbd in Frameworks */,
 			);
@@ -1211,6 +1211,7 @@
 				BBFB557221586C6600DFE6DE /* Utilities */,
 				BBBF7B5B2415CDBB00EC4C14 /* Settings.bundle */,
 				CC000001AF96D90D00FFB7A4 /* RootfsPatch.bundle */,
+				DD000002AF96D90D00FFB7A4 /* ThirdPartyNotices.bundle */,
 				BB792B5C1F96D90D00FFB7A4 /* Assets.xcassets */,
 				BB1B9A4123A5E92A00414052 /* Icons */,
 				BB792B5E1F96D90D00FFB7A4 /* LaunchScreen.storyboard */,
@@ -1583,7 +1584,6 @@
 			);
 			dependencies = (
 				AA000060AF96D90D00FFB7A4 /* PBXTargetDependency */,
-				AA000062AF96D90D00FFB7A4 /* PBXTargetDependency */,
 			);
 			name = "iSH-ARM64-ffmpeg";
 			productName = "iSH ARM64 ffmpeg";
@@ -1608,7 +1608,6 @@
 			);
 			dependencies = (
 				AA000060AF96D90D00FFB7A4 /* PBXTargetDependency */,
-				AA000062AF96D90D00FFB7A4 /* PBXTargetDependency */,
 			);
 			name = "iSH-ARM64";
 			productName = "iSH ARM64";
@@ -1931,6 +1930,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DD000001AF96D90D00FFB7A4 /* ThirdPartyNotices.bundle in Resources */,
 				AA000040AF96D90D00FFB7A4 /* Terminal.storyboard in Resources */,
 				AA000041AF96D90D00FFB7A4 /* Assets.xcassets in Resources */,
 				AA000042AF96D90D00FFB7A4 /* LaunchScreen.storyboard in Resources */,
@@ -2145,10 +2145,13 @@
 			);
 			name = "Build Meson (ARM64)";
 			outputPaths = (
+				"$(LINPAD_LIBARCHIVE_DIR)/libarchive.a",
+				"$(LINPAD_LIBARCHIVE_DIR)/Headers/archive.h",
+				"$(LINPAD_LIBARCHIVE_DIR)/Headers/archive_entry.h",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"$SRCROOT/app/xcode-meson.sh\"\ncd \"$MESON_BUILD_DIR\"\n\"$SRCROOT/app/xcode-ninja.sh\" $NINJA_TARGETS\nmkdir -p \"$CONFIGURATION_BUILD_DIR\"\nln -sf \"$MESON_BUILD_DIR/libish.a\" \"$CONFIGURATION_BUILD_DIR/libish.a\"\nln -sf \"$MESON_BUILD_DIR/libish_emu.a\" \"$CONFIGURATION_BUILD_DIR/libish_emu.a\"\nln -sf \"$MESON_BUILD_DIR/libfakefs.a\" \"$CONFIGURATION_BUILD_DIR/libfakefs.a\"\n";
+			shellScript = "set -e\n. \"$SRCROOT/app/build-tools.sh\"\npython3 \"$SRCROOT/scripts/prepare-prebuilt.py\" --cache \"$LINPAD_PREBUILT_DIR\"\n\"$SRCROOT/app/xcode-meson.sh\"\ncd \"$MESON_BUILD_DIR\"\n\"$SRCROOT/app/xcode-ninja.sh\" $NINJA_TARGETS\nmkdir -p \"$CONFIGURATION_BUILD_DIR\"\nln -sf \"$MESON_BUILD_DIR/libish.a\" \"$CONFIGURATION_BUILD_DIR/libish.a\"\nln -sf \"$MESON_BUILD_DIR/libish_emu.a\" \"$CONFIGURATION_BUILD_DIR/libish_emu.a\"\nln -sf \"$MESON_BUILD_DIR/libfakefs.a\" \"$CONFIGURATION_BUILD_DIR/libfakefs.a\"\n";
 		};
 		BB034E8C263643C10000A498 /* Generate APK Repositories File */ = {
 			isa = PBXShellScriptBuildPhase;
