@@ -104,21 +104,11 @@
     gret
 
 // SXTW Xd, Wn - Sign extend word
-.gadget sxtw
-    sxtw _tmp, w0
-    gret
+// sxtw is defined in math.S with the generator's instruction-stream ABI.
 
-// UXTB Xd, Wn - Zero extend byte
-.gadget uxtb
-    uxtb w0, w0
-    mov _tmp, x0
-    gret
+// uxtb is defined in math.S with the generator's instruction-stream ABI.
 
-// UXTH Xd, Wn - Zero extend halfword
-.gadget uxth
-    uxth w0, w0
-    mov _tmp, x0
-    gret
+// uxth is defined in math.S with the generator's instruction-stream ABI.
 
 /*
  * Bit counting operations
@@ -159,10 +149,7 @@
     rev _tmp, _tmp
     gret
 
-.gadget rev32
-    rev w0, w0
-    mov _tmp, x0
-    gret
+// rev32 is defined in math.S with the generator's instruction-stream ABI.
 
 // REV16 Xd, Xn - Reverse bytes in halfwords
 .gadget rev16_64

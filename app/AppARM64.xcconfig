@@ -12,4 +12,4 @@ LINPAD_LIBARCHIVE_SLICE_iphonesimulator = ios-arm64_x86_64-simulator
 LINPAD_LIBARCHIVE_SLICE = $(LINPAD_LIBARCHIVE_SLICE_$(PLATFORM_NAME))
 LINPAD_LIBARCHIVE_DIR = $(LINPAD_PREBUILT_DIR)/libarchive-1.0.0/libarchive.xcframework/$(LINPAD_LIBARCHIVE_SLICE)
 HEADER_SEARCH_PATHS = "$(LINPAD_LIBARCHIVE_DIR)/Headers" $(inherited)
-OTHER_LDFLAGS = $(inherited) "$(LINPAD_LIBARCHIVE_DIR)/libarchive.a" -liconv -lxml2 -lpthread
+OTHER_LDFLAGS = $(inherited) "$(LINPAD_LIBARCHIVE_DIR)/libarchive.a" -liconv -lxml2 -lpthread -lsqlite3

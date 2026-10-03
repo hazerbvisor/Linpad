@@ -15,6 +15,26 @@ if ! config=$(meson introspect --buildoptions 2>/dev/null); then
         arch_args="'-arch', '$arch', $arch_args"
     done
     arch_args="${arch_args%%, }"
+    # Explicit SDK/deployment flags keep Meson objects on the same Apple platform
+    # as the app instead of relying on compiler-driver environment inference.
+    sdk_args=$(python3 - <<'PYFLAGS'
+import os
+platform = os.environ['PLATFORM_NAME']
+if platform in ('iphoneos', 'iphonesimulator'):
+    minimum = os.environ['IPHONEOS_DEPLOYMENT_TARGET']
+    flag = '-miphoneos-version-min=' if platform == 'iphoneos' else '-mios-simulator-version-min='
+elif platform == 'macosx':
+    minimum = os.environ['MACOSX_DEPLOYMENT_TARGET']
+    flag = '-mmacosx-version-min='
+else:
+    raise SystemExit('Unsupported Apple platform: ' + platform)
+args = ['-isysroot', os.environ['SDKROOT'], flag + minimum]
+if any("'''" in arg for arg in args):
+    raise SystemExit('SDK arguments cannot contain triple single quotes')
+# Meson machine files reject Python's double-quoted repr for apostrophes.
+print(', '.join("'''" + arg + "'''" for arg in args))
+PYFLAGS
+    )
     meson_arch=${ARCHS%% *}
     case "$meson_arch" in
         arm64) meson_arch=aarch64 ;;
@@ -31,7 +51,8 @@ if ! config=$(meson introspect --buildoptions 2>/dev/null); then
     endian = 'little'
 
     [built-in options]
-    c_args = [$arch_args]
+    c_args = [$arch_args, $sdk_args]
+    c_link_args = [$arch_args, $sdk_args]
     
     [properties]
     needs_exe_wrapper = true
