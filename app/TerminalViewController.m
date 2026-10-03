@@ -8,6 +8,9 @@
 #import "TerminalViewController.h"
 #import "AppDelegate.h"
 #import "AppGroup.h"
+#if !ISH_LINUX && defined(GUEST_ARM64)
+#import "Display/X11ViewController.h"
+#endif
 #import "TerminalView.h"
 #import "BarButton.h"
 #import "ArrowBarButton.h"
@@ -49,6 +52,9 @@
 @property (nonatomic) Terminal *sessionTerminal;
 
 #if !ISH_LINUX
+#ifdef GUEST_ARM64
+@property LinpadX11ViewController *x11Controller;
+#endif
 @property UIView *startupOverlay;
 @property UILabel *startupLabel;
 @property NSTimer *startupTimer;
@@ -540,6 +546,31 @@
 #pragma mark Bar
 
 - (IBAction)showAbout:(id)sender {
+#if !ISH_LINUX && defined(GUEST_ARM64)
+    if (![sender isKindOfClass:UIGestureRecognizer.class]) {
+        UIAlertController *menu=[UIAlertController alertControllerWithTitle:@"Linpad" message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+        [menu addAction:[UIAlertAction actionWithTitle:@"Settings" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            (void)action; [self presentSettings:nil];
+        }]];
+        [menu addAction:[UIAlertAction actionWithTitle:@"Linux GUI (experimental)" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            (void)action;
+            if (!self.x11Controller || self.x11Controller.finished) self.x11Controller=[LinpadX11ViewController new];
+            UINavigationController *nav=[[UINavigationController alloc] initWithRootViewController:self.x11Controller];
+            nav.modalPresentationStyle=UIModalPresentationFullScreen;
+            [self.termView resignFirstResponder];
+            [self presentViewController:nav animated:YES completion:nil];
+        }]];
+        [menu addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+        menu.popoverPresentationController.sourceView=self.infoButton;
+        menu.popoverPresentationController.sourceRect=self.infoButton.bounds;
+        [self presentViewController:menu animated:YES completion:nil];
+        return;
+    }
+#endif
+    [self presentSettings:sender];
+}
+
+- (void)presentSettings:(id)sender {
     UINavigationController *navigationController = [[UIStoryboard storyboardWithName:@"About" bundle:nil] instantiateInitialViewController];
     if ([sender isKindOfClass:[UIGestureRecognizer class]]) {
         UIGestureRecognizer *recognizer = sender;

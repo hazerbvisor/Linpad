@@ -186,7 +186,7 @@ void FsApplyOverlay(void) {
         }
 
         ssize_t written = write_file(dst.UTF8String, data.bytes, data.length);
-        if (written < 0) {
+        if (written < 0 || (NSUInteger)written != data.length) {
             NSLog(@"[RootfsPatch] FAIL %@ -> %@ (error %zd)", src, dst, written);
             failed++;
         } else {
@@ -195,6 +195,12 @@ void FsApplyOverlay(void) {
         }
     }
 
+    // Retry an incomplete overlay on next boot rather than permanently hiding
+    // missing GUI scripts behind a successfully advanced version marker.
+    if (failed != 0) {
+        NSLog(@"[RootfsPatch] incomplete: %d applied, %d failed; will retry next boot", applied, failed);
+        return;
+    }
     // Record installed version
     create_directory("/ish", 0755);
     NSString *versionStr = [NSString stringWithFormat:@"%d\n", patchVersion];
