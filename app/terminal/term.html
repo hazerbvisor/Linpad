@@ -12,17 +12,25 @@
         }
     };
     window.__terminalBootstrapLog = log;
+    const fail = (message) => {
+        log(message);
+        try {
+            window.webkit?.messageHandlers?.frontendError?.postMessage(message);
+        } catch (error) {
+        }
+    };
+    window.__terminalBootstrapError = fail;
     window.addEventListener('error', (event) => {
-        log(`terminal bootstrap error: ${event.message} @ ${event.filename}:${event.lineno}:${event.colno}`);
+        fail(`terminal bootstrap error: ${event.message} @ ${event.filename}:${event.lineno}:${event.colno}`);
     });
     window.addEventListener('unhandledrejection', (event) => {
-        log(`terminal bootstrap rejection: ${event.reason?.stack || event.reason}`);
+        fail(`terminal bootstrap rejection: ${event.reason?.stack || event.reason}`);
     });
 })();
 </script>
 <script
     src="ghostty-web.js"
-    onerror="window.__terminalBootstrapLog && window.__terminalBootstrapLog('terminal ghostty script failed to load')"></script>
+    onerror="window.__terminalBootstrapError && window.__terminalBootstrapError('terminal ghostty script failed to load')"></script>
 <script
     src="term.js"
-    onerror="window.__terminalBootstrapLog && window.__terminalBootstrapLog('terminal bridge script failed to load')"></script>
+    onerror="window.__terminalBootstrapError && window.__terminalBootstrapError('terminal bridge script failed to load')"></script>

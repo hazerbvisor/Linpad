@@ -14,12 +14,17 @@
 
 #if !ISH_LINUX
 + (int)bootError;
++ (BOOL)bootCompleted;
++ (NSString *)bootPhase;
++ (NSString *)bootFailureReason;
++ (void)beginBoot;
 #endif
 
 @end
 
 #if !ISH_LINUX
 extern NSString *const ProcessExitedNotification;
+extern NSString *const StartupDidChangeNotification;
 #else
 extern NSString *const KernelPanicNotification;
 #endif

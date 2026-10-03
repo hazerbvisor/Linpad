@@ -98,6 +98,11 @@ binaries, private APIs, entitlements or package recipes were copied.
 - Explicit Apple SDK/deployment flags and SDK SQLite link; missing Darwin dispatch
   include repaired; duplicate placeholder gadgets removed while keeping the
   instruction generator's existing implementations in math.S.
+- Select the existing classic xterm.js Canvas frontend for the ARM64 app; repair
+  startup visibility, boot/session gating and frontend error reporting.
+- Public Foundation App Group resolution with private app sandbox fallback;
+  preserve Files integration only when shared storage is provisioned. Remove the
+  unchecked embedded-signature parser; surface default-root import errors.
 - Typed ARM64 syscall and legacy socketcall adapters replace incompatible function
   pointer casts. Legacy dispatch moved from fs/sock.c to fs/socketcall.c; numbers,
   unsupported entries and guest argument layouts remain unchanged.

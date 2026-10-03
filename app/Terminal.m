@@ -20,7 +20,7 @@ typedef struct tty *tty_t;
 typedef struct linux_tty *tty_t;
 #endif
 
-@interface Terminal () <WKScriptMessageHandler> {
+@interface Terminal () <WKScriptMessageHandler, WKNavigationDelegate> {
 #if !ISH_LINUX
     lock_t _dataLock;
     cond_t _dataConsumed;
@@ -28,6 +28,7 @@ typedef struct linux_tty *tty_t;
 }
 
 @property BOOL loaded;
+@property (copy) NSString *frontendError;
 @property (nonatomic) tty_t tty;
 // lock with dataLock for !linux and @synchronized(self) for linux
 @property (nonatomic) NSMutableData *pendingData;
@@ -117,6 +118,7 @@ static NSMapTable<NSUUID *, Terminal *> *terminalsByUUID;
         [config.userContentController addUserScript:bootstrapStyleUserScript];
         [config.userContentController addScriptMessageHandler:self name:@"load"];
         [config.userContentController addScriptMessageHandler:self name:@"log"];
+        [config.userContentController addScriptMessageHandler:self name:@"frontendError"];
         [config.userContentController addScriptMessageHandler:self name:@"sendInput"];
         [config.userContentController addScriptMessageHandler:self name:@"resize"];
         [config.userContentController addScriptMessageHandler:self name:@"propUpdate"];
@@ -125,6 +127,7 @@ static NSMapTable<NSUUID *, Terminal *> *terminalsByUUID;
         _webView = [[CustomWebView alloc] initWithFrame:webviewSize configuration:config];
         if (@available(macOS 13.3, iOS 16.4, tvOS 16.4, *))
             _webView.inspectable = YES;
+        _webView.navigationDelegate = self;
         _webView.layer.drawsAsynchronously = YES;
         _webView.scrollView.scrollEnabled = NO;
 #if USE_XTERM_RENDERER
@@ -134,7 +137,11 @@ static NSMapTable<NSUUID *, Terminal *> *terminalsByUUID;
 #endif
         // Give WebKit access to the containing bundle directory so the
         // terminal frontend can load adjacent classic scripts and assets.
-        [_webView loadFileURL:xtermHtmlFile allowingReadAccessToURL:xtermHtmlFile.URLByDeletingLastPathComponent];
+        if (xtermHtmlFile == nil) {
+            self.frontendError = @"The terminal HTML resource is missing from this app build.";
+        } else {
+            [_webView loadFileURL:xtermHtmlFile allowingReadAccessToURL:xtermHtmlFile.URLByDeletingLastPathComponent];
+        }
     }
     return _webView;
 }
@@ -186,12 +193,16 @@ static NSMapTable<NSUUID *, Terminal *> *terminalsByUUID;
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
     if ([message.name isEqualToString:@"load"]) {
         NSLog(@"terminal frontend loaded");
+        self.frontendError = nil;
         self.loaded = YES;
         [self.refreshTask schedule];
         // make sure this setting works if it's set before loading
         self.enableVoiceOverAnnounce = self.enableVoiceOverAnnounce;
     } else if ([message.name isEqualToString:@"log"]) {
         NSLog(@"%@", message.body);
+    } else if ([message.name isEqualToString:@"frontendError"]) {
+        if ([message.body isKindOfClass:NSString.class])
+            self.frontendError = [message.body substringToIndex:MIN([message.body length], (NSUInteger)2048)];
     } else if ([message.name isEqualToString:@"sendInput"]) {
         if (![message.body isKindOfClass:NSString.class])
             return;
@@ -211,6 +222,19 @@ static NSMapTable<NSUUID *, Terminal *> *terminalsByUUID;
         if ([property isEqualToString:@"applicationCursor"] && [body[1] isKindOfClass:NSNumber.class])
             self.applicationCursor = [body[1] boolValue];
     }
+}
+
+- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error {
+    self.frontendError = error.localizedDescription;
+}
+
+- (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error {
+    self.frontendError = error.localizedDescription;
+}
+
+- (void)webViewWebContentProcessDidTerminate:(WKWebView *)webView {
+    self.loaded = NO;
+    self.frontendError = @"The terminal web content process stopped. Close and reopen Linpad.";
 }
 
 - (void)syncWindowSize {
