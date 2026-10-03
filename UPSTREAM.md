@@ -95,6 +95,14 @@ binaries, private APIs, entitlements or package recipes were copied.
   the deprecated context-switch API header's feature-macro error; check helpers
   against macOS/iOS SDKs before the Codemagic app build.
 - Align shared Xcode deployment minimum with the existing ARM64 iOS 15 minimum.
+- Explicit Apple SDK/deployment flags and SDK SQLite link; missing Darwin dispatch
+  include repaired; duplicate placeholder gadgets removed while keeping the
+  instruction generator's existing implementations in math.S.
+- Typed ARM64 syscall and legacy socketcall adapters replace incompatible function
+  pointer casts. Legacy dispatch moved from fs/sock.c to fs/socketcall.c; numbers,
+  unsupported entries and guest argument layouts remain unchanged.
+- Native ABI/socket controls, runtime symbol checks and compiler/linker error
+  summary artifacts; Ninja collects all independent failures.
 - Portable Xcode tool discovery; remove personal tool paths and signing teams.
 - ARM64-only host diagnostics and a Linux cross-compilation CLI target.
 - Standalone fakefsify logging to repair the packaging tool's unresolved symbols;

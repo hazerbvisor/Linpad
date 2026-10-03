@@ -103,7 +103,7 @@ void handle_interrupt(int interrupt) {
                 printk("%d(%s) missing syscall %d\n", current->pid, current->comm, syscall_num);
                 cpu->regs[0] = (uint64_t)(int64_t)(int32_t)_ENOSYS;
             } else {
-                if (syscall_table[syscall_num] == (syscall_t) syscall_stub) {
+                if (syscall_table[syscall_num] == syscall_stub_entry) {
                     printk("%d(%s) stub syscall %d\n", current->pid, current->comm, syscall_num);
                 }
                 STRACE("%d call %-3d ", current->pid, syscall_num);

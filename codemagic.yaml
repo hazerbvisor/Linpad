@@ -56,6 +56,20 @@ workflows:
             -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
             -std=gnu11 -Wall -Wextra -Werror -fsyntax-only -I. \
             tests/linpad/host-context.c
+      - name: Check typed syscall and socket dispatch
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          xcrun --sdk macosx clang -arch arm64 -std=gnu11 -O2 \
+            -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=all \
+            -I. tests/linpad/syscall-adapter.c -o artifacts/syscall-adapter-check
+          artifacts/syscall-adapter-check
+          xcrun --sdk macosx clang -arch arm64 -std=gnu11 -O2 \
+            -Wall -Wextra -Werror -fsanitize=undefined -fno-sanitize-recover=all \
+            -DGUEST_ARM64=1 -DENGINE_ASBESTOS=1 -I. \
+            tests/linpad/socketcall.c fs/socketcall.c -o artifacts/socketcall-check
+          artifacts/socketcall-check
       - name: Verify prebuilt artifacts and regression checks
         script: |
           #!/bin/bash
@@ -63,18 +77,21 @@ workflows:
           cd "$CM_BUILD_DIR"
           . app/build-tools.sh
           python3 scripts/prepare-prebuilt.py
-          python3 -m unittest discover -s tests/linpad -p 'test_prebuilt.py'
+          python3 -m unittest discover -s tests/linpad -p 'test_*.py'
       - name: Build unsigned ARM64 iPadOS app
         script: |
           #!/bin/bash
           set -euo pipefail
           cd "$CM_BUILD_DIR"
+          build_status=0
           sh scripts/build-ios.sh \
             ROOT_BUNDLE_IDENTIFIER="$LINPAD_BUNDLE_ID" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM= \
             -resultBundlePath "$CM_BUILD_DIR/artifacts/Linpad-build.xcresult" \
-            2>&1 | tee artifacts/xcodebuild.log
+            2>&1 | tee artifacts/xcodebuild.log || build_status=$?
+          python3 scripts/summarize-build-log.py artifacts/xcodebuild.log | tee artifacts/build-errors.log
+          exit "$build_status"
       - name: Package unsigned IPA
         script: |
           #!/bin/bash

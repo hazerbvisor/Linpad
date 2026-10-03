@@ -1,13 +1,13 @@
 # Prebuilt dependency reuse
 
-**Implemented, Apple linking unverified:** the ARM64 Xcode app selects a pinned
+**Implemented, complete Apple app linking unverified:** the ARM64 Xcode app selects a pinned
 prebuilt iOS libarchive and a checked-in guest VDSO. The native app, ARM64
 interpreter, syscall layer and filesystem code still compile with Apple tooling.
 There is no verified reusable ios-linuxkit ARM64 runtime binary being substituted.
 
 | Component | Build behavior | Evidence / limits |
 | --- | --- | --- |
-| iOS libarchive | Download/cache v1.0.0 binary package, link selected static slice | Actual archive/member hashes and ARM64 Mach-O inspected; Apple link and rootfs import with this binary pending |
+| iOS libarchive | Download/cache v1.0.0 binary package, link selected static slice | Actual archive/member hashes, ARM64 Mach-O and targeted iOS link with fakefs client checked; full app link and rootfs import pending |
 | Guest AArch64 VDSO | Validate and reuse 3,080-byte checked-in ELF | Fresh ARM64 Linux cross-build passed; source rebuild produced identical bytes |
 | Alpine AArch64 rootfs and GUI packages | Use Alpine's existing minirootfs/APK binaries | No guest package compilation required; app/runtime compatibility still needs device tests |
 | Ghostty terminal JS/WASM/fonts | Retain upstream vendored assets | Already built; these display terminal text |
@@ -51,6 +51,7 @@ selected iOS device static archive is about 12 MB before normal linker stripping
 The release bundles its compression libraries; the old libarchive source-target
 dependency and separate system bzip2 link are removed from the ARM64 targets.
 Native SDK iconv, xml2 and pthread libraries satisfy the artifact's system links.
+SDK SQLite is explicitly linked for the runtime/fakefs database implementation.
 This is direct static-slice linking; SwiftPM and its Swift wrapper are not required.
 
 For offline cache priming:
@@ -121,3 +122,7 @@ The fresh ARM64 cross-build and independent byte-identical source VDSO rebuild
 passed. The Xcode project was parsed and the ARM64 dependency/resource/build-phase
 references checked. Real iOS compilation/linking and fakefs rootfs import/export
 with the new Mach-O library remain required acceptance checks on macOS/iPad.
+A later audit compiled all 88 runtime sources for ARM64 iOS and linked them plus
+the actual prebuilt libarchive and fakefs import/export client using LLVM 19.1.7
+and public iPhoneOS 16.5 SDK headers/stubs. This is a Linux cross-link audit, not
+a completed Xcode 26.6 app build or fakefs import/export execution.
