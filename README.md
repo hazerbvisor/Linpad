@@ -24,6 +24,7 @@ into a disposable guest and capture a real xclock window through Xvfb when the
 runtime is available. A headless capture does not meet the iPad GUI milestone.
 The terminal-only base filesystem is kept small.
 
+- [Codemagic unsigned build workflow](codemagic.yaml) — [setup](docs/BUILDING.md#codemagic-unsigned-build)
 - [Prebuilt dependencies and source rebuilds](docs/PREBUILT_DEPENDENCIES.md)
 - [Runtime and module boundaries](docs/ARCHITECTURE.md)
 - [X11 architecture](docs/GUI_ARCHITECTURE.md) and [compatibility audit](docs/GUI_COMPATIBILITY.md)
