@@ -34,7 +34,14 @@
                 *error = [NSError errorWithDomain:NSFileProviderErrorDomain code:NSFileProviderErrorNotAuthenticated userInfo:nil];
                 return NO;
             }
-            NSURL *container = ContainerURL();
+            NSURL *container = SharedContainerURL();
+            if (container == nil) {
+                if (error != NULL)
+                    *error = [NSError errorWithDomain:NSFileProviderErrorDomain
+                                                 code:NSFileProviderErrorNotAuthenticated
+                                             userInfo:@{NSLocalizedDescriptionKey: @"Linpad Files integration requires a provisioned App Group."}];
+                return NO;
+            }
             NSURL *fs_dir = [[container URLByAppendingPathComponent:@"roots"]
                       URLByAppendingPathComponent:self.domain.identifier];
             _root = [fs_dir URLByAppendingPathComponent:@"data"];

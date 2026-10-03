@@ -21,6 +21,14 @@ static NSString *const TerminalUUID = @"TerminalUUID";
 @implementation SceneDelegate
 
 - (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
+    if (![scene isKindOfClass:UIWindowScene.class])
+        return;
+    if (self.window == nil)
+        self.window = [[UIWindow alloc] initWithWindowScene:(UIWindowScene *)scene];
+    if (self.window.rootViewController == nil)
+        self.window.rootViewController = [[UIStoryboard storyboardWithName:@"Terminal" bundle:nil] instantiateInitialViewController];
+    [self.window makeKeyAndVisible];
+
     if ([NSUserDefaults.standardUserDefaults boolForKey:@"recovery"]) {
         UINavigationController *vc = [[UIStoryboard storyboardWithName:@"About" bundle:nil] instantiateInitialViewController];
         AboutViewController *avc = (AboutViewController *) vc.topViewController;

@@ -32,6 +32,7 @@ static NSString *kDefaultRoot = @"Default Root";
 @property BOOL updatingDomains;
 @property BOOL domainsNeedUpdate;
 @property BOOL wantsVersionFile;
+@property NSError *startupError;
 @end
 
 @implementation Roots
@@ -40,16 +41,27 @@ static NSString *kDefaultRoot = @"Default Root";
     if (self = [super init]) {
         NSError *error = nil;
         NSArray<NSString *> *rootNames = [NSFileManager.defaultManager contentsOfDirectoryAtPath:RootsDir().path error:&error];
-        NSAssert(error == nil, @"couldn't list roots: %@", error);
-        self.roots = [rootNames mutableCopy];
+        self.roots = [NSMutableOrderedSet orderedSetWithArray:rootNames ?: @[]];
+        if (error != nil) {
+            self.startupError = error;
+            return self;
+        }
         if (!self.roots.count) {
             // import default root
-            NSError *error;
-            if (![self importRootFromArchive:[NSBundle.mainBundle URLForResource:@"root" withExtension:@"tar.gz"]
+            NSError *error = nil;
+            NSURL *archive = [NSBundle.mainBundle URLForResource:@"root" withExtension:@"tar.gz"];
+            if (archive == nil) {
+                self.startupError = [NSError errorWithDomain:@"LinpadStartup" code:1
+                                                  userInfo:@{NSLocalizedDescriptionKey: @"The app is missing its bundled Alpine root.tar.gz."}];
+                return self;
+            }
+            if (![self importRootFromArchive:archive
                                         name:@"default"
                                        error:&error
                             progressReporter:nil]) {
-                NSAssert(NO, @"failed to import default root, error %@", error);
+                self.startupError = error ?: [NSError errorWithDomain:@"LinpadStartup" code:2
+                                                             userInfo:@{NSLocalizedDescriptionKey: @"Could not import the bundled Alpine filesystem."}];
+                return self;
             }
             _wantsVersionFile = YES;
         }
@@ -78,6 +90,9 @@ static NSString *kDefaultRoot = @"Default Root";
 }
 
 - (void)syncFileProviderDomains {
+    // Private app storage cannot be shared with the Files extension.
+    if (SharedContainerURL() == nil)
+        return;
     if (self.updatingDomains) {
         self.domainsNeedUpdate = YES;
         return;

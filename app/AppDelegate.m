@@ -44,6 +44,7 @@ extern void native_builtins_init(void);
 
 @property BOOL exiting;
 @property SCNetworkReachabilityRef reachability;
+@property NSString *bootstrapFailure;
 
 @end
 
@@ -75,13 +76,29 @@ void ReportPanic(const char *message) {
 #endif
 
 static int bootError;
+#if !ISH_LINUX
+static BOOL bootStarted;
+static BOOL bootCompleted;
+static NSString *bootPhase = @"Preparing Linpad";
+static NSString *bootFailureReason;
+#endif
 
 @implementation AppDelegate
 
 - (int)boot {
 #if !ISH_LINUX
-    NSURL *root = [Roots.instance rootUrl:Roots.instance.defaultRoot];
-
+    [self reportBootPhase:@"Preparing Alpine filesystem (first launch may take a moment)"];
+    Roots *roots = Roots.instance;
+    if (roots.startupError != nil || roots.defaultRoot.length == 0) {
+        self.bootstrapFailure = roots.startupError.localizedDescription ?: @"No Alpine filesystem is available.";
+        return _EIO;
+    }
+    NSURL *root = [roots rootUrl:roots.defaultRoot];
+    if (root == nil) {
+        self.bootstrapFailure = @"The app storage directory is unavailable.";
+        return _EIO;
+    }
+    [self reportBootPhase:@"Mounting Alpine filesystem"];
     int err = mount_root(&fakefs, [root URLByAppendingPathComponent:@"data"].fileSystemRepresentation);
     if (err < 0)
         return err;
@@ -100,6 +117,7 @@ static int bootError;
     native_builtins_init();
 #endif
 
+    [self reportBootPhase:@"Preparing Linux devices and configuration"];
     FsInitialize();
 
     // create some device nodes
@@ -181,6 +199,7 @@ static int bootError;
         "PYTHONMALLOC=malloc\0"
 #endif
         ;
+    [self reportBootPhase:@"Loading Alpine init"];
     err = do_execve(command[0].UTF8String, command.count, argv, envp);
     if (err < 0)
         return err;
@@ -264,9 +283,48 @@ void SyncHostname(void) {
 #endif
 }
 
-+ (int)bootError {
-    return bootError;
+#if !ISH_LINUX
++ (int)bootError { return bootError; }
++ (BOOL)bootCompleted { return bootCompleted; }
++ (NSString *)bootPhase { return bootPhase; }
++ (NSString *)bootFailureReason { return bootFailureReason; }
+
+- (void)reportBootPhase:(NSString *)phase {
+    NSLog(@"[Linpad startup] %@", phase);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        bootPhase = phase;
+        [NSNotificationCenter.defaultCenter postNotificationName:StartupDidChangeNotification object:nil];
+    });
 }
+
++ (void)beginBoot {
+    NSAssert(NSThread.isMainThread, @"Startup must be requested on the main thread");
+    if (bootStarted || [NSUserDefaults.standardUserDefaults boolForKey:@"recovery"])
+        return;
+    bootStarted = YES;
+    AppDelegate *delegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
+    // Return to UIKit before importing or entering the guest. Roots may marshal
+    // its collection update to main; main must never wait for this worker.
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        int result;
+        @try {
+            result = [delegate boot];
+        } @catch (NSException *exception) {
+            delegate.bootstrapFailure = exception.reason ?: exception.name;
+            result = _EIO;
+        }
+        NSString *failure = delegate.bootstrapFailure;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            bootError = result;
+            bootCompleted = YES;
+            bootFailureReason = failure;
+            if (result >= 0)
+                bootPhase = @"Starting terminal session";
+            [NSNotificationCenter.defaultCenter postNotificationName:StartupDidChangeNotification object:nil];
+        });
+    });
+}
+#endif
 
 - (BOOL)application:(UIApplication *)application willFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey,id> *)launchOptions {
     NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
@@ -278,7 +336,9 @@ void SyncHostname(void) {
     if ([NSUserDefaults.standardUserDefaults boolForKey:@"recovery"])
         return YES;
 
+#if ISH_LINUX
     bootError = [self boot];
+#endif
 
 #if ISH_LINUX
     [NSNotificationCenter.defaultCenter addObserverForName:UIApplicationWillEnterForegroundNotification object:UIApplication.sharedApplication queue:nil usingBlock:^(NSNotification * _Nonnull note) {
@@ -292,6 +352,10 @@ void SyncHostname(void) {
 
 void NetworkReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info) {
     AppDelegate *self = (__bridge AppDelegate *) info;
+#if !ISH_LINUX
+    if (!bootCompleted || bootError < 0)
+        return;
+#endif
     [self configureDns];
 }
 
@@ -383,6 +447,7 @@ void NetworkReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
 
 #if !ISH_LINUX
 NSString *const ProcessExitedNotification = @"ProcessExitedNotification";
+NSString *const StartupDidChangeNotification = @"LinpadStartupDidChange";
 #else
 NSString *const KernelPanicNotification = @"KernelPanicNotification";
 #endif

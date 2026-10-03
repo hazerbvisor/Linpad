@@ -56,7 +56,7 @@ workflows:
             -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
             -std=gnu11 -Wall -Wextra -Werror -fsyntax-only -I. \
             tests/linpad/host-context.c
-      - name: Check typed syscall and socket dispatch
+      - name: Check syscall dispatch and sideloaded storage
         script: |
           #!/bin/bash
           set -euo pipefail
@@ -70,6 +70,10 @@ workflows:
             -DGUEST_ARM64=1 -DENGINE_ASBESTOS=1 -I. \
             tests/linpad/socketcall.c fs/socketcall.c -o artifacts/socketcall-check
           artifacts/socketcall-check
+          xcrun --sdk macosx clang -arch arm64 -fobjc-arc -fblocks \
+            -Wall -Wextra -Werror -I. tests/linpad/storage-fallback.m app/AppGroup.m \
+            -framework Foundation -o artifacts/storage-fallback-check
+          artifacts/storage-fallback-check
       - name: Verify prebuilt artifacts and regression checks
         script: |
           #!/bin/bash

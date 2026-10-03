@@ -7,6 +7,7 @@
 
 #import "TerminalViewController.h"
 #import "AppDelegate.h"
+#import "AppGroup.h"
 #import "TerminalView.h"
 #import "BarButton.h"
 #import "ArrowBarButton.h"
@@ -47,6 +48,16 @@
 @property int sessionPid;
 @property (nonatomic) Terminal *sessionTerminal;
 
+#if !ISH_LINUX
+@property UIView *startupOverlay;
+@property UILabel *startupLabel;
+@property NSTimer *startupTimer;
+@property NSDate *startupTime;
+@property NSString *startupFailure;
+@property BOOL sessionRequested;
+@property NSUUID *pendingReconnectUUID;
+#endif
+
 @property BOOL ignoreKeyboardMotion;
 @property (nonatomic) BOOL hasExternalKeyboard;
 
@@ -58,19 +69,15 @@
     [super viewDidLoad];
 
 #if !ISH_LINUX
-    int bootError = [AppDelegate bootError];
-    if (bootError < 0) {
-        NSString *message = [NSString stringWithFormat:@"could not boot"];
-        NSString *subtitle = [NSString stringWithFormat:@"error code %d", bootError];
-        if (bootError == _EINVAL)
-            subtitle = [subtitle stringByAppendingString:@"\n(try reinstalling the app, see release notes for details)"];
-        [self showMessage:message subtitle:subtitle];
-        NSLog(@"boot failed with code %d", bootError);
-    }
+    [self installStartupOverlay];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(startupChanged:)
+                                               name:StartupDidChangeNotification object:nil];
 #endif
 
     self.terminal = self.terminal;
+#if ISH_LINUX
     [self.termView becomeFirstResponder];
+#endif
 
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center addObserver:self
@@ -120,6 +127,15 @@
     }];
 }
 
+- (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+#if !ISH_LINUX
+    [self.startupTimer invalidate];
+    [_terminal removeObserver:self forKeyPath:@"loaded"];
+    [_terminal removeObserver:self forKeyPath:@"frontendError"];
+#endif
+}
+
 - (void)awakeFromNib {
     [super awakeFromNib];
 #if !ISH_LINUX
@@ -137,18 +153,142 @@
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
+#if !ISH_LINUX
+    [AppDelegate beginBoot];
+    [self updateStartupDisplay];
+#endif
 }
 
+#if !ISH_LINUX
+- (void)installStartupOverlay {
+    self.startupTime = NSDate.date;
+    self.startupOverlay = [[UIView alloc] initWithFrame:self.view.bounds];
+    self.startupOverlay.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.startupOverlay.backgroundColor = UIColor.systemBackgroundColor;
+    UILabel *title = [UILabel new];
+    title.text = @"Linpad";
+    title.font = [UIFont preferredFontForTextStyle:UIFontTextStyleTitle1];
+    title.textAlignment = NSTextAlignmentCenter;
+    self.startupLabel = [UILabel new];
+    self.startupLabel.numberOfLines = 0;
+    self.startupLabel.textAlignment = NSTextAlignmentCenter;
+    self.startupLabel.text = [AppDelegate bootPhase];
+    UIButton *copy = [UIButton buttonWithType:UIButtonTypeSystem];
+    [copy setTitle:@"Copy startup report" forState:UIControlStateNormal];
+    [copy addTarget:self action:@selector(copyStartupReport:) forControlEvents:UIControlEventTouchUpInside];
+    UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[title, self.startupLabel, copy]];
+    stack.axis = UILayoutConstraintAxisVertical;
+    stack.spacing = 20;
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.startupOverlay addSubview:stack];
+    [NSLayoutConstraint activateConstraints:@[
+        [stack.centerXAnchor constraintEqualToAnchor:self.startupOverlay.centerXAnchor],
+        [stack.centerYAnchor constraintEqualToAnchor:self.startupOverlay.centerYAnchor],
+        [stack.widthAnchor constraintLessThanOrEqualToConstant:640],
+        [stack.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.startupOverlay.safeAreaLayoutGuide.leadingAnchor constant:24],
+        [stack.trailingAnchor constraintLessThanOrEqualToAnchor:self.startupOverlay.safeAreaLayoutGuide.trailingAnchor constant:-24],
+    ]];
+    [self.view addSubview:self.startupOverlay];
+    __weak typeof(self) weakSelf = self;
+    self.startupTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 repeats:YES block:^(NSTimer *timer) {
+        (void)timer;
+        [weakSelf updateStartupDisplay];
+    }];
+}
+
+- (void)startupChanged:(NSNotification *)notification {
+    if ([AppDelegate bootCompleted] && self.sessionRequested) {
+        NSUUID *uuid = self.pendingReconnectUUID;
+        self.pendingReconnectUUID = nil;
+        self.sessionRequested = NO;
+        if (uuid != nil)
+            [self reconnectSessionFromTerminalUUID:uuid];
+        else
+            [self startNewSession];
+    }
+    [self updateStartupDisplay];
+}
+
+- (void)updateStartupDisplay {
+    NSString *message = [AppDelegate bootPhase];
+    if ([AppDelegate bootCompleted]) {
+        if ([AppDelegate bootError] < 0) {
+            message = [NSString stringWithFormat:@"Startup failed during: %@\n%@\nLinux error %d",
+                       [AppDelegate bootPhase], [AppDelegate bootFailureReason] ?: @"Could not boot Alpine.", [AppDelegate bootError]];
+        } else if (self.startupFailure != nil) {
+            message = self.startupFailure;
+        } else if (self.terminal.frontendError != nil) {
+            message = [@"Terminal display failed: " stringByAppendingString:self.terminal.frontendError];
+        } else if (self.terminal.loaded) {
+            BOOL wasVisible = !self.startupOverlay.hidden;
+            self.startupOverlay.hidden = YES;
+            [self.startupTimer invalidate];
+            self.startupTimer = nil;
+            if (wasVisible)
+                [self.termView becomeFirstResponder];
+            return;
+        } else {
+            message = @"Loading terminal display";
+        }
+    }
+    self.startupOverlay.hidden = NO;
+    if (-self.startupTime.timeIntervalSinceNow > 20)
+        message = [message stringByAppendingString:@"\nStill waiting. Copy the startup report if this does not finish."];
+    self.startupLabel.text = message;
+}
+
+- (void)copyStartupReport:(id)sender {
+    NSString *revision = [NSBundle.mainBundle objectForInfoDictionaryKey:@"LinpadBuildRevision"] ?: @"unknown";
+    UIPasteboard.generalPasteboard.string = [NSString stringWithFormat:
+        @"Linpad %@ (%@)\niPadOS %@\nBuild %@\nPhase: %@\nBoot complete: %@; error: %d\nFailure: %@\nInit executable: %@\nSession executable: %@\nTerminal ready: %@\nFrontend: %@\nStorage: %@",
+        [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"],
+        [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleVersion"], UIDevice.currentDevice.systemVersion,
+        revision, [AppDelegate bootPhase], [AppDelegate bootCompleted] ? @"yes" : @"no", [AppDelegate bootError],
+        self.startupFailure ?: [AppDelegate bootFailureReason] ?: @"none",
+        UserPreferences.shared.bootCommand.firstObject ?: @"none", UserPreferences.shared.launchCommand.firstObject ?: @"none",
+        self.terminal.loaded ? @"yes" : @"no", self.terminal.frontendError ?: @"none",
+        SharedContainerURL() != nil ? @"App Group" : @"private app sandbox"];
+}
+#endif
+
 - (void)startNewSession {
+#if !ISH_LINUX
+    if (![AppDelegate bootCompleted]) {
+        self.sessionRequested = YES;
+        return;
+    }
+    if ([AppDelegate bootError] < 0) {
+        [self updateStartupDisplay];
+        return;
+    }
+    if (self.startupFailure != nil) {
+        [self updateStartupDisplay];
+        return;
+    }
+    self.sessionRequested = NO;
+#endif
     int err = [self startSession];
     if (err < 0) {
         NSLog(@"could not start session: %d", err);
-        [self showMessage:@"could not start session"
-                 subtitle:[NSString stringWithFormat:@"error code %d", err]];
+#if !ISH_LINUX
+        self.startupFailure = [NSString stringWithFormat:@"Could not start the Alpine terminal (error %d).", err];
+        [self updateStartupDisplay];
+#else
+        [self showMessage:@"could not start session" subtitle:[NSString stringWithFormat:@"error code %d", err]];
+#endif
     }
 }
 
 - (void)reconnectSessionFromTerminalUUID:(NSUUID *)uuid {
+#if !ISH_LINUX
+    if (![AppDelegate bootCompleted]) {
+        self.pendingReconnectUUID = uuid;
+        self.sessionRequested = YES;
+        return;
+    }
+    if ([AppDelegate bootError] < 0)
+        return;
+#endif
     self.sessionTerminal = [Terminal terminalWithUUID:uuid];
     if (self.sessionTerminal == nil)
         [self startNewSession];
@@ -167,6 +307,8 @@
     NSLog(@"starting terminal session with command: %@", [command componentsJoinedByString:@" "]);
 
 #if !ISH_LINUX
+    if (pid_get_task(1) == NULL)
+        return _ECHILD;
     int err = become_new_init_child();
     if (err < 0)
         return err;
@@ -239,6 +381,11 @@
 #if !ISH_LINUX
 - (void)processExited:(NSNotification *)notif {
     int pid = [notif.userInfo[@"pid"] intValue];
+    if (pid == 1) {
+        self.startupFailure = [NSString stringWithFormat:@"Alpine init exited (code %@). Close and reopen Linpad.", notif.userInfo[@"code"]];
+        [self updateStartupDisplay];
+        return;
+    }
     if (pid != self.sessionPid)
         return;
 
@@ -270,6 +417,12 @@
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+#if !ISH_LINUX
+    if (object == self.terminal) {
+        [self updateStartupDisplay];
+        return;
+    }
+#endif
     if (object == [UserPreferences shared]) {
         [self _updateStyleFromPreferences:YES];
     } else {
@@ -507,8 +660,17 @@
 }
 
 - (void)setTerminal:(Terminal *)terminal {
+#if !ISH_LINUX
+    [_terminal removeObserver:self forKeyPath:@"loaded"];
+    [_terminal removeObserver:self forKeyPath:@"frontendError"];
+#endif
     _terminal = terminal;
     self.termView.terminal = self.terminal;
+#if !ISH_LINUX
+    [_terminal addObserver:self forKeyPath:@"loaded" options:0 context:nil];
+    [_terminal addObserver:self forKeyPath:@"frontendError" options:0 context:nil];
+    [self updateStartupDisplay];
+#endif
 }
 
 - (void)setSessionTerminal:(Terminal *)sessionTerminal {
