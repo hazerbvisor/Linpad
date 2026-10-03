@@ -9,12 +9,12 @@ No IPA or iPad GUI was produced in the bootstrap session.
 ```sh
 git clone https://github.com/hazerbvisor/Linpad.git
 cd Linpad
-git switch feature/bootstrap-ios-linuxkit
-git submodule update --init deps/libapps deps/libarchive
+git switch main
+git submodule update --init deps/libapps
 ```
 
-After the PR is merged, use the reviewed default branch instead. Pins and licenses
-are in [UPSTREAM.md](../UPSTREAM.md). `deps/linux` is retained but intentionally
+For the prebuilt dependency changes before their PR is merged, use
+`feature/prebuilt-dependencies`. Pins and licenses are in [UPSTREAM.md](../UPSTREAM.md). `deps/linux` is retained but intentionally
 not initialized/built for this userspace application. Never select inherited
 Linux-kernel build configurations. Use the `iSH-ARM64` app scheme and `kernel=ish`.
 
@@ -24,7 +24,7 @@ Install a recent full Xcode, select its developer directory using Apple's normal
 `xcode-select` workflow, and install portable command-line dependencies:
 
 ```sh
-brew install meson ninja python llvm lld
+brew install meson ninja python
 sh scripts/build-ios.sh
 ```
 
@@ -44,8 +44,15 @@ only AArch64 host gadgets. A simulator, if tested later, must also be ARM64.
 
 `app/build-tools.sh` discovers installed Homebrew tools without developer-specific
 paths. For a custom installation, export `LINPAD_TOOLCHAIN_BIN` with the directory
-containing tools before building. LLVM/LLD provide the Linux ELF VDSO toolchain;
-Apple clang/ar compile the native application libraries via `xcrun`.
+containing tools before building. Apple clang/ar still compile the native application
+and runtime libraries via `xcrun`. The ARM64 app uses a verified prebuilt libarchive
+and a checked-in guest VDSO, so LLVM/LLD are no longer required for the standard
+iOS build. This configuration targets iPadOS 15 or later. See
+[prebuilt dependencies](PREBUILT_DEPENDENCIES.md) for pins, licenses and source rebuilds.
+The first build downloads a roughly 72 MB libarchive ZIP and verifies SHA-256;
+subsequent builds verify the extracted cache without downloading. Set
+`LINPAD_PREBUILT_DIR=/path/to/cache` as an xcodebuild setting to relocate that cache.
+Only the selected device/simulator static library is linked; the ZIP is not bundled.
 Meson/Ninja state stays in Xcode's configuration build directory. Do not reuse
 Meson directories across different SDKs/architectures or native/AOT experiments.
 The standard app forcibly disables JIT/emission and clears AOT image options.
@@ -73,19 +80,23 @@ Legacy Fastlane publishing is deliberately blocked before any lane executes.
 Its historical lane bodies remain for attribution; its Appfile/Matchfile have
 no upstream account or certificate repository configured. Use local xcodebuild;
 Codemagic configuration and release automation are deferred. Future caches can
-retain submodules, verified rootfs downloads and SDK/configuration-specific
+retain submodules, `build-data/prebuilt` (or the configured prebuilt cache),
+verified rootfs downloads and SDK/configuration-specific
 DerivedData; never cache signing credentials in this repository.
 
 ## AArch64 Linux development host
 
 ```sh
 # Debian/Ubuntu on a real ARM64 host:
-sudo apt install clang lld make meson ninja-build pkg-config \
+sudo apt install clang make meson ninja-build pkg-config \
   libsqlite3-dev libarchive-dev git curl file tar
 CC=clang make build-arm64-linux MESON_SETUP_ARGS='-Djit=false -Djit_emit=false'
 ```
 
-The Linux CLI runs as an ordinary AArch64 host process, not a VM. Create the exact
+The default build reuses the same validated guest VDSO. LLVM/LLD are required
+only when rebuilding it from source; Linux libarchive uses the distribution
+package rather than the Apple binary. The Linux CLI runs as an ordinary AArch64
+host process, not a VM. Create the exact
 pinned rootfs and import fakefs:
 
 ```sh
