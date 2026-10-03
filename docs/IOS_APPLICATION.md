@@ -118,6 +118,11 @@ Darwin builds can also map a guest command to a host executable through the `-n 
 
 ## Fastlane status
 
+Linpad blocks all inherited publishing lanes before execution and removes the
+upstream signing identities. Use [BUILDING.md](BUILDING.md) for the supported local
+compilation workflow. The historical description below describes inherited code.
+
+
 `fastlane/Fastfile` is inherited from upstream iSH. Its `build` lane selects scheme `iSH`, and `upload_build` publishes to upstream identifiers and `ish-app/ish`. Those lanes do not target the `iSH-ARM64` schemes without modification.
 
 Do not use the inherited upload lane for this fork until its scheme, bundle identifiers, signing repository, TestFlight groups and GitHub repository are changed and reviewed. The generated `fastlane/README.md` only lists lane names; it is not a release runbook for `ios-linuxkit`.

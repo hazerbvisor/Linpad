@@ -1,142 +1,57 @@
-# ARM64 runtime architecture
+# Linpad architecture
 
-`ios-linuxkit` executes an AArch64 Linux guest with a userspace kernel and a threaded-code interpreter. The current Meson configuration accepts only `guest_arch=arm64` and `engine=asbestos`.
-
-## Execution path
-
-```text
-AArch64 ELF program
-        |
-        v
-userspace Linux kernel and syscall table
-        |
-        v
-ARM64 decoder (`asbestos/guest-arm64/gen.c`)
-        |
-        v
-gadget program: host function pointers plus inline operands
-        |
-        v
-precompiled AArch64 gadgets (`gadgets-aarch64/*.S`)
-        |
-        v
-Linux or Darwin host APIs
-```
-
-The decoder builds a `fiber_block` for each guest basic block. Its code array contains addresses of precompiled gadget functions and their operands. Each gadget performs part of a guest instruction and branches to the next gadget. In the default gadget engine, executable host instructions come from the built application. Translated programs are data arrays and need no executable allocation.
-
-The optional native backend in `asbestos/guest-arm64/jit.c` compiles selected
-gadget blocks into ARM64 instructions. A recording build uses separate Linux
-RW/RX aliases. An AOT-only build links generated images and compiles out the
-runtime emitter with `jit_emit=false`. Images match guest module bytes and the
-recorded ABI; uncovered or rejected code uses gadgets. Native links participate
-in block ownership and invalidation. Ordinary builds set `jit=false`.
-
-Both engines use internal names such as `jit_saved_pc` and
-`jit_crash_trampoline`. See [Linux AOT](NATIVE_AOT_BUILD_PLAN.md) for build modes
-and [iOS AOT](NATIVE_AOT_IOS.md) for the unfinished app integration.
-
-## Decoder and gadgets
-
-| Path | Responsibility |
-|---|---|
-| `asbestos/guest-arm64/gen.c` | Decode AArch64 instructions and emit gadget words. |
-| `asbestos/guest-arm64/gadgets-aarch64/entry.S` | Enter and leave gadget execution; crash trampoline. |
-| `asbestos/guest-arm64/gadgets-aarch64/memory.S` | Loads, stores, TLB fast paths and fault exits. |
-| `asbestos/guest-arm64/gadgets-aarch64/control.S` | Branches and control flow. |
-| `asbestos/guest-arm64/gadgets-aarch64/math.S` | Integer, floating-point and AdvSIMD operations. |
-| `asbestos/guest-arm64/gadgets-aarch64/crypto.S` | Implemented cryptographic instructions. |
-| `asbestos/asbestos.c` | Block cache, chaining, invalidation and executor diagnostics. |
-
-Instruction coverage is incomplete. A decoder match and a native-looking gadget do not establish architectural correctness on their own; each added instruction needs an executable guest fixture, including width, aliasing, alignment, flags and exceptional cases that apply.
-
-Floating-point conversion gadgets that depend on the guest control or status registers save the host thread's `FPCR` and `FPSR`, load `cpu_state`'s guest values, execute the native instruction, copy cumulative exceptions back to the guest `FPSR`, then restore the host values. The current implementation applies this hand-off to `FCVTN`/`FCVTN2`, `FCVTL`/`FCVTL2` and `FCVTXN`/`FCVTXN2`. [`tests/arm64/fp/`](../tests/arm64/fp/) checks rounding, exception flags, vector halves, source/destination aliasing and decoder masks.
-
-## Address space and memory
-
-`kernel/memory.h` defines a four-level page table with 512 entries per level and 4 KiB pages. This gives a 48-bit guest address space. Default stacks and ordinary anonymous mappings stay below 4 GiB for shorter, hotter page-table paths; explicit high mappings and lazy `MAP_NORESERVE` reservations can use the wider range.
-
-Large lazy reservations record ranges and permissions without allocating every page-table entry. Guest faults materialise pages when required. Mapping changes increment a generation used by the TLB to reject stale host pointers.
-
-`emu/tlb.h` defines an 8,192-entry TLB and a 4,096-entry persistent block cache. Guest stores mark translated pages dirty. Page invalidation discards stale blocks before later execution, which is required for guest self-modifying code.
-
-## Fault recovery
-
-A host `SIGSEGV` or `SIGBUS` can occur inside a memory gadget when a guest access needs copy-on-write, stack growth or page materialisation. Faultable operations save their guest instruction address in `fiber_frame::jit_saved_pc`. The shared core in `platform/native_fault.c` reads the OS context through `platform/host_context_aarch64.h` and redirects execution to `jit_crash_trampoline`; the CLI adapter in `main.c` keeps its signal policy. The dispatch loop resolves the guest fault and retries that instruction. The callable app adapter refuses gadget replay and is not installed by existing app schemes.
-
-The precise saved address prevents earlier instructions in the same block from executing twice. Normal-register unsigned-immediate `LDR X` saves that address inside `load64_imm_fast`, consuming `[operands][guest PC]` together instead of dispatching a separate PC-save gadget. Its LDR+CBZ/CBNZ fusion already saves the LDR PC internally; other memory forms retain their existing saves. Operand-stream producers and consumers must change together.
-
-A separate broad synthetic read-fault fallback is compiled only with `ENABLE_ARM64_READ_FAULT_RECOVERY` and is disabled in ordinary builds. This does **not** disable all compatibility recovery: `kernel/calls.c` still demand-maps readable zeros for an unmapped read page with a mapped neighbour within 16 pages, and retains targeted V8 recovery paths. These can suppress guest faults that native Linux would deliver. See [limitations](LIMITATIONS.md#memory-and-code-protection) and the [load-PC evidence](reports/benchmarks/ARM_LINUX_LOAD_PC_2026-09-05.md).
-
-Native memory operations record the exact host/guest PC, address and direction
-at each faultable access after canonicalising guest state. Recovery accepts a
-matching active checkpoint, disarms it and retries the guest instruction.
-Unmatched native faults stop execution. The ABI hash includes checkpoint/frame
-offsets, entry and pinning conventions, TLB/context layout and table sizes;
-incompatible images are rejected. Actual Linux restart tests and limits are in
-the [host report](reports/audits/AOT_ALPINE_HOST_2026-09-29.md) and
-[shared-recovery report](reports/audits/SHARED_NATIVE_RECOVERY_2026-10-02.md).
-
-Native builds expose read-only `jit_layout_read` and `/proc/ish/jit-layout`.
-They report compiled layouts without initialising the backend or mapping code.
-Convention fields are usable only with `ready=1`, after normal initialisation
-has selected them. A no-image bootstrap can stay not ready. Diagnostics neither
-relabel recordings nor establish an Apple target contract.
-
-## Userspace kernel
-
-The `kernel/` and `fs/` trees implement Linux-facing process, memory, signal, file, socket and polling interfaces in user space. `kernel/arch/arm64/calls.c` maps AArch64 syscall numbers to those implementations. Unimplemented calls return the configured stub result, usually `ENOSYS`.
-
-The principal filesystem choices are:
-
-- **realfs**, which exposes a host directory directly;
-- **fakefs**, which stores Linux metadata in SQLite while keeping file contents under a host directory;
-- in-memory and synthetic filesystems for `/tmp`, `/proc`, devices and pseudo-terminals.
-
-This userspace compatibility layer reproduces enough Linux behaviour for the tested userland. Kernel modules, namespaces, cgroups and device passthrough are unavailable.
-
-## Host boundaries
-
-`platform/platform.h` separates common code from Linux and Darwin implementations for host statistics, random data, paths, thread names and memory-pressure hooks. `platform/host_context_aarch64.h` handles the incompatible Darwin and Linux AArch64 `ucontext_t` layouts used by fault recovery.
-
-Some host differences remain at their call sites:
-
-- native offload in `kernel/native_offload.c` has platform-specific execution paths;
-- sockets and polling map Linux guest behaviour to different host facilities;
-  opt-in [route-netlink snapshots](NETLINK_TAILSCALE.md) report host interfaces
-  without supporting guest route changes or network-change notifications;
-- synchronisation uses host-specific timed-wait and lock operations.
-
-## Native offload
-
-[Offload contracts](NATIVE_OFFLOAD.md) separate the existing legacy handler and
-macOS spawn paths from the startup-only cooperative API. Cooperative execution
-uses raw guest argv, retained VFS state and a guest-thread-owned cancellation
-context; it refuses sibling/exiting guest groups. Stream admission is restricted
-to connected TCP stdio with per-call nonblocking operations and work/retry limits.
-No production cooperative handler is registered. The bounded local-copy example
-is test-only; disk operations have no universal latency guarantee. Legacy host
-CWD/path translation and blocking forwarders retain their existing behaviour.
-
-## Guest compatibility settings
-
-`kernel/exec.c` supplies defaults when the guest environment does not already define them:
+**Experimental:** imported ARM64 terminal app; Linux-host cross-compilation and
+rootfs packaging validated. Apple compilation and on-device execution pending.
+The detailed imported runtime design is preserved in
+[ARCHITECTURE.upstream.md](ARCHITECTURE.upstream.md).
 
 ```text
-GODEBUG=asyncpreemptoff=1
-GOMAXPROCS=2
-JSC_numberOfGCMarkers=1
-JSC_useConcurrentGC=0
+Apple Silicon iPad / native iPadOS app (host sandbox and host kernel)
+  -> ARM64 ios-linuxkit / iSH syscall compatibility + Asbestos gadgets
+  -> Alpine AArch64 userspace / ordinary Linux ELF programs
+  -> terminal frontend today
+  -> X11 -> display bridge -> native presentation                 [Planned]
 ```
 
-The Go settings avoid asynchronous pre-emption paths whose interrupted guest PC cannot always be represented precisely. The JavaScriptCore settings avoid multi-marker suspension and concurrent-GC hangs. They trade concurrency for reliable execution and are part of the current compatibility contract.
+Guest basic blocks are decoded into data containing pointers to precompiled
+AArch64 gadgets. The default app build forces `jit=false`, `jit_emit=false` and
+empty `cli_aot`. iPadOS remains the host kernel. Linux syscalls dispatch to the
+userspace compatibility layer, not a virtual hardware machine or a booted kernel.
+The imported optional native/AOT research is not enabled by Linpad.
 
-The initial process path in `xX_main_Xx.h` adds `--jitless`, `--no-lazy`, `--no-expose-wasm` and a 512 MiB old-space limit when it launches Node directly. Later Node `execve` calls add `--jitless`, `--no-lazy` and the same old-space limit in `kernel/exec.c`; optional rootfs polyfills handle selected WebAssembly-dependent packages.
+## Existing structure and boundaries
 
-## iOS application boundary
+| Path | Responsibility | Status |
+| --- | --- | --- |
+| asbestos/guest-arm64, emu | AArch64 decoder, gadgets, TLB and execution | Imported; ARM64 cross-build verified |
+| kernel | Linux syscall/process/memory/synchronization compatibility | Imported; runtime validation pending here |
+| fs, platform | Fakefs, descriptors, sockets, host OS adaptation | Imported; packaging verified |
+| app | Native application, terminal UI, sandbox filesystem integration | Imported/rebranded; Apple build pending |
+| app/RootfsPatch.bundle | Small Alpine startup overlay | Imported/rebranded |
+| scripts, tests/linpad | Optional guest audit and headless X11 evidence | Experimental; host controls only |
+| app/Display/DisplayServer | Future host display adapter | Planned; directory/code not created yet |
+| app/Display/Input | Future UIKit event to protocol input adapter | Planned |
+| app/Display/Surface, app/Metal | Future bounded buffers and presentation | Planned |
 
-The `iSH-ARM64` target links the userspace kernel and emulator libraries into an iOS application. Its build downloads the AArch64 Alpine rootfs declared by `app/GuestARM64.xcconfig`. `app/download-root.sh` verifies the pinned SHA-256 and AArch64 BusyBox before atomically replacing the bundled archive.
+Preserve existing upstream paths rather than renaming the runtime wholesale.
+The future display adapter receives bounded immutable frame snapshots and sends
+bounded input messages through an explicit session interface. UIKit and Metal
+remain in `app`; runtime code must not depend on either. Guest descriptors and
+addresses are opaque to the host adapter. A future fd bridge must resolve them
+through controlled runtime APIs with retention, access checks and cancellation.
 
-Host integration includes fakefs bind mounts through `fakefs_bind_mount()` and optional legacy native command handlers through `native_offload_add_handler()`.
-The cooperative API has a separate ownership/VFS contract and is not enabled by
-the supplied schemes. These interfaces run inside the app's iOS sandbox and inherit its trust boundary.
+## Security and lifecycle
+
+The iOS sandbox is the outer boundary. This compatibility runtime is not a secure
+isolation boundary for hostile Linux code; see [SECURITY.md](../SECURITY.md) and
+[upstream limitations](LIMITATIONS.md). A guest protocol message is untrusted.
+Reject overflow in width × bytes-per-pixel, stride × height, offsets and allocation
+sizes; bound dimensions, queued frames, message lengths, fd counts and input rates.
+Use app-owned storage and local authenticated sessions. Do not accept guest host
+paths or global IOSurface IDs as capabilities. Retain buffers until presentation
+completion, coordinate resize generations, and stop/join workers on session exit.
+Do not broaden entitlements or sandbox access for display functionality.
+
+Terminal-only launch remains the default. Desktop packages and session processes
+must remain opt-in, with foreground/background and memory-pressure behavior tested
+on the exact signed app before distribution.
