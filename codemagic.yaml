@@ -44,6 +44,18 @@ workflows:
             python3 --version
             git submodule status deps/libapps
           } | tee artifacts/dependencies.log
+      - name: Check ARM64 signal-context helpers against Apple SDKs
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          xcrun --sdk macosx clang -arch arm64 -std=gnu11 -Wall -Wextra -Werror -I. \
+            tests/linpad/host-context.c -o artifacts/host-context-check
+          artifacts/host-context-check
+          xcrun --sdk iphoneos clang -target arm64-apple-ios15.0 \
+            -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
+            -std=gnu11 -Wall -Wextra -Werror -fsyntax-only -I. \
+            tests/linpad/host-context.c
       - name: Verify prebuilt artifacts and regression checks
         script: |
           #!/bin/bash

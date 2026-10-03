@@ -96,3 +96,38 @@ bootstrap main. No new Apple/device runtime claim.
   Apple SDK linking, signing, runtime launch and rootfs import/export with the
   replacement libarchive are still unverified. Test with current Xcode on an
   Apple Silicon builder and an iPad running iPadOS 15 or later.
+
+
+## Reported Codemagic compile failure and signal-context fix
+
+The user supplied the first Apple build failure from Codemagic on Xcode 26.6 /
+iPhoneOS SDK 26.5. Compilation stopped in `platform/native_fault.c` because
+`platform/host_context_aarch64.h` included `<ucontext.h>` without `_XOPEN_SOURCE`.
+That Apple umbrella header gates deprecated getcontext/makecontext/setcontext/
+swapcontext routines; Linpad only needs the signal-context type definitions.
+The excerpt also reported the preparatory target's inherited iOS 11 minimum as
+outside this SDK's supported range. No successful app link/IPA/runtime was reported.
+
+Branch `fix/apple-ucontext-build` selects public `<sys/ucontext.h>` on Apple and
+retains `<ucontext.h>` on Linux. It introduces no feature-macro changes or
+context-switch calls. The shared project minimum is now iOS 15, matching the
+existing ARM64 app/prebuilt libarchive minimum, including preparatory/extension
+targets. Codemagic now compiles/runs a register/PC/SP/ESR helper check on ARM64
+macOS, then syntax-checks it against the chosen iPhoneOS SDK before building the app.
+
+Local checks on the x86_64 Linux development host:
+
+- The old header reproduced the identical `_XOPEN_SOURCE` error using Clang 19.1.7
+  targeting ARM64 iOS 15 with real public iPhoneOS 16.5 SDK headers; the changed
+  header/helper check passed with warnings-as-errors and no global feature macro.
+- The actual previously failing `platform/native_fault.c` compiled to an ARM64
+  iOS Mach-O object with those headers and existing generated ARM64 offsets.
+  This is a targeted Linux cross-compile, not an Apple Xcode 26.6 app build/link.
+- ARM64 Linux helper syntax check and runtime/CLI rebuild passed, retaining the
+  Linux context layout and the non-JIT configuration.
+- Updated Codemagic YAML passed the official schema and all six shell-step syntax
+  checks. SDK reference headers/tools remain in scratch; none are vendored in Linpad.
+
+Required next evidence: rerun `linpad-ios-unsigned` on the fix branch with Xcode
+26.6/SDK 26.5. The new native helper test has not run on an Apple host here;
+a successful full app link and on-iPad Alpine CLI launch remain unverified.

@@ -84,14 +84,16 @@ or the Codemagic workflow below. Store signing credentials outside this reposito
 
 [The root codemagic.yaml](../codemagic.yaml) defines `linpad-ios-unsigned`, a manual
 workflow on an Apple Silicon M2 macOS builder with `xcode: latest`. It calls the
-same `scripts/build-ios.sh` used locally. **Configuration added; no Codemagic or
-Apple build has been executed in this Linux session.** The YAML passed Codemagic's
-official JSON schema, all shell steps passed syntax checks, and a failing build
-control retained its error status/log through `tee`. These checks do not establish
-Apple compilation or successful IPA packaging.
+same `scripts/build-ios.sh` used locally. **The first reported Codemagic app build
+failed at Apple's deprecated `ucontext.h` feature-macro gate.** The host-context
+header fix uses public signal-context types; full Apple app compilation and IPA
+packaging still need a successful rerun. See [validation evidence](BOOTSTRAP_VALIDATION.md).
+The YAML passed Codemagic's official JSON schema, all shell steps passed syntax
+checks, and a failing build control retained its error status/log through `tee`.
 
 1. Connect `hazerbvisor/Linpad` in Codemagic and use its repository YAML configuration.
-2. Select `feature/codemagic-ios` until this PR is merged; afterward select `main`.
+2. Select `fix/apple-ucontext-build` to test the compiler fix before its PR is
+   merged; afterward select `main`.
 3. Start workflow `linpad-ios-unsigned` manually. No automatic triggers are configured.
 4. Download `Linpad-unsigned.ipa`, `xcodebuild.log`, the toolchain/dependency logs
    and `Linpad-build.xcresult` from build artifacts. Logs and any generated result
@@ -102,6 +104,12 @@ The workflow installs Meson, Ninja and Python, initializes only the pinned
 prebuilt regression checks, then builds the `iSH-ARM64` Release scheme for a generic
 iOS ARM64 device. The Xcode phases verify the guest VDSO and download/verify Alpine
 AArch64. They do not compile a Linux kernel or guest applications.
+
+Before the full app build, an ARM64 signal-context check compiles/runs natively on
+macOS and syntax-checks against the selected iPhoneOS SDK. It checks register,
+PC/SP and exception-status helpers without installing handlers or enabling JIT.
+The shared project minimum is iOS 15.0, matching the app and libarchive dependency,
+including preparatory and extension targets.
 
 `build-data/prebuilt` is cached and revalidated each run. DerivedData and Meson
 build directories are fresh for each run, preventing SDK/toolchain cache mixing;
