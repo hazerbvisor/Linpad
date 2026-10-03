@@ -1,0 +1,13 @@
+{
+  "sha256": "856588ce4ef3745c839abf57bf09bde401f6c83ddade99c3a1270a841c28fbb8",
+  "size": 3080,
+  "inputs": {
+    "vdso.c": "db08530a6b71a239237b8987b38ea26ccf04ac28b2bb6983afecfc61b6d16e5c",
+    "vdso.S": "323bf75fd247466a318bcb2f4892918fe32d99409b77d5e0c5da360aa029ec80",
+    "vdso.lds": "2fa92c5b6a1819206939156193d308f5de00e6b24b970f14c332cb274c02e3e0",
+    "../../kernel/vdso.h": "c1b27e86ee7319daf641a26db4f6349601f3f9549caebf4465bc59f94132828a"
+  },
+  "upstream_revision": "c1a4064e84f1a957280a62f77d107162032dc908",
+  "compiler": "Clang 19.1.7 / LLD 19.1.7",
+  "command": "clang -target aarch64-linux-gnu -fuse-ld=lld -o prebuilt/libvdso.so.elf vdso.S vdso.c -nostdlib -Wl,-T,vdso.lds -Wl,--hash-style,sysv -shared -fPIC -ffreestanding"
+}
