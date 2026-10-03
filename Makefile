@@ -9,7 +9,7 @@ CC ?= clang
 RELEASE_BUILD_DIR ?= build-arm64-linux
 DEBUG_BUILD_DIR ?= build-arm64-linux-debug
 NATIVE_BUILD_DIR ?= build-arm64-native-release
-AOT_RECORD_DIR ?= /workspace/tmp/ish-aot-targeted
+AOT_RECORD_DIR ?= $(CURDIR)/build-data/ish-aot-targeted
 MESON_SETUP_ARGS ?=
 ROOTFS_DIR ?= $(CURDIR)/alpine-arm64-fakefs
 DEBIAN_ROOTFS_DIR ?= $(CURDIR)/debian-arm64-fakefs
@@ -18,7 +18,7 @@ NODE_VERSION ?= 24.14.1
 BUN_VERSION ?= 1.3.13
 ROOTFS_LANES ?= alpine=$(ROOTFS_DIR) debian=$(DEBIAN_ROOTFS_DIR)
 CLI_PACKAGE_MANAGERS ?= npm bun pip
-REPORT_DIR ?= /workspace/tmp
+REPORT_DIR ?= $(CURDIR)/build-data/reports
 TIMEOUT_S ?= 120
 INSTALL_TIMEOUT_S ?= 1200
 PERF_RUNS ?= 21

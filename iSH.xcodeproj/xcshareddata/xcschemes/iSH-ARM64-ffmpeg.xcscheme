@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "74B674687BE68C2FE768F439"
-               BuildableName = "iSH ARM64 ffmpeg.app"
+               BuildableName = "Linpad ffmpeg test.app"
                BlueprintName = "iSH-ARM64-ffmpeg"
                ReferencedContainer = "container:iSH.xcodeproj">
             </BuildableReference>
@@ -31,7 +31,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "74B674687BE68C2FE768F439"
-            BuildableName = "iSH ARM64 ffmpeg.app"
+            BuildableName = "Linpad ffmpeg test.app"
             BlueprintName = "iSH-ARM64-ffmpeg"
             ReferencedContainer = "container:iSH.xcodeproj">
          </BuildableReference>
@@ -54,7 +54,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "74B674687BE68C2FE768F439"
-            BuildableName = "iSH ARM64 ffmpeg.app"
+            BuildableName = "Linpad ffmpeg test.app"
             BlueprintName = "iSH-ARM64-ffmpeg"
             ReferencedContainer = "container:iSH.xcodeproj">
          </BuildableReference>
@@ -71,7 +71,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "74B674687BE68C2FE768F439"
-            BuildableName = "iSH ARM64 ffmpeg.app"
+            BuildableName = "Linpad ffmpeg test.app"
             BlueprintName = "iSH-ARM64-ffmpeg"
             ReferencedContainer = "container:iSH.xcodeproj">
          </BuildableReference>

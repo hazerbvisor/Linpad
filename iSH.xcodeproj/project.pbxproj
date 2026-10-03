@@ -698,11 +698,11 @@
 		8632A7BE219A59FB00F02325 /* UserPreferences.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UserPreferences.m; sourceTree = "<group>"; };
 		9A28E4E8219A8B670073D200 /* AboutAppearanceViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AboutAppearanceViewController.h; sourceTree = "<group>"; };
 		9A28E4E9219A8B670073D200 /* AboutAppearanceViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AboutAppearanceViewController.m; sourceTree = "<group>"; };
-		AA0000021F96D90D00FFB7A4 /* iSH ARM64.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "iSH ARM64.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000021F96D90D00FFB7A4 /* Linpad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Linpad.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000015AF96D90D00FFB7A4 /* AppARM64.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = AppARM64.xcconfig; sourceTree = "<group>"; };
 		AA000131AF96D90D00FFB7A4 /* DebugServer.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = DebugServer.c; sourceTree = "<group>"; };
 		AA000132AF96D90D00FFB7A4 /* DebugServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DebugServer.h; sourceTree = "<group>"; };
-		AA9C2BB72F44A3DD00F41633 /* iSH ARM64 ffmpeg.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "iSH ARM64 ffmpeg.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA9C2BB72F44A3DD00F41633 /* Linpad ffmpeg test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Linpad ffmpeg test.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB0B848E2586A4CF00208600 /* XcodeDefault.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = XcodeDefault.xcconfig; sourceTree = "<group>"; };
 		BB0B859B2586F13200208600 /* XcodeDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = XcodeDebug.xcconfig; sourceTree = "<group>"; };
 		BB0B859C2586F19000208600 /* XcodeRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = XcodeRelease.xcconfig; sourceTree = "<group>"; };
@@ -1164,7 +1164,7 @@
 			isa = PBXGroup;
 			children = (
 				BB792B501F96D90D00FFB7A4 /* iSH.app */,
-				AA0000021F96D90D00FFB7A4 /* iSH ARM64.app */,
+				AA0000021F96D90D00FFB7A4 /* Linpad.app */,
 				BB88F4902154760800A341FD /* iSHFileProvider.appex */,
 				BB13F7DC200AD81D003D1C4D /* libish.a */,
 				BBFB2C5B2590257E00545EAB /* libish_emu.a */,
@@ -1177,7 +1177,7 @@
 				BBECF3A22691314C00DEC937 /* libiSHLinux.a */,
 				BBECF3B8269136E100DEC937 /* liblinux.a */,
 				BBBDDF8F2CE00F6B0071F1F3 /* libiSHLinuxUser.a */,
-				AA9C2BB72F44A3DD00F41633 /* iSH ARM64 ffmpeg.app */,
+				AA9C2BB72F44A3DD00F41633 /* Linpad ffmpeg test.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1587,7 +1587,7 @@
 			);
 			name = "iSH-ARM64-ffmpeg";
 			productName = "iSH ARM64 ffmpeg";
-			productReference = AA9C2BB72F44A3DD00F41633 /* iSH ARM64 ffmpeg.app */;
+			productReference = AA9C2BB72F44A3DD00F41633 /* Linpad ffmpeg test.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AA0000011F96D90D00FFB7A4 /* iSH-ARM64 */ = {
@@ -1612,7 +1612,7 @@
 			);
 			name = "iSH-ARM64";
 			productName = "iSH ARM64";
-			productReference = AA0000021F96D90D00FFB7A4 /* iSH ARM64.app */;
+			productReference = AA0000021F96D90D00FFB7A4 /* Linpad.app */;
 			productType = "com.apple.product-type.application";
 		};
 		BB13F7DB200AD81D003D1C4D /* libish */ = {
@@ -2114,7 +2114,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "python3 $SRCROOT/app/gen_apk_repositories.py\n";
+			shellScript = "python3 \"$SRCROOT/app/gen_apk_repositories.py\"\n";
 		};
 		AA000013AF96D90D00FFB7A4 /* Compile JavaScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2133,7 +2133,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd $SRCROOT/deps/libapps && ./hterm/bin/mkdist\n";
+			shellScript = "cd \"$SRCROOT/deps/libapps\" && ./hterm/bin/mkdist\n";
 		};
 		AA000300AF96D90D00FFB7A4 /* Build Meson (ARM64) */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2168,7 +2168,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = "/bin/sh -e";
-			shellScript = "python3 $SRCROOT/app/gen_apk_repositories.py\n";
+			shellScript = "python3 \"$SRCROOT/app/gen_apk_repositories.py\"\n";
 		};
 		BB13F813200AEFAC003D1C4D /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2216,7 +2216,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = "/bin/sh -e";
-			shellScript = "cd $SRCROOT/deps/libapps\n./hterm/bin/mkdist\n";
+			shellScript = "cd \"$SRCROOT/deps/libapps\"\n./hterm/bin/mkdist\n";
 			showEnvVarsInLog = 0;
 		};
 		BB4A922A24ED9421002F5A96 /* Add icons to Info.plist */ = {
@@ -2288,7 +2288,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = "/bin/sh -e";
-			shellScript = "python3 $SRCROOT/app/gen_apk_repositories.py\n";
+			shellScript = "python3 \"$SRCROOT/app/gen_apk_repositories.py\"\n";
 		};
 		BBEF197B268066D1001225BD /* Compile JavaScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2304,7 +2304,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = "/bin/sh -e";
-			shellScript = "cd $SRCROOT/deps/libapps\n./hterm/bin/mkdist\n";
+			shellScript = "cd \"$SRCROOT/deps/libapps\"\n./hterm/bin/mkdist\n";
 			showEnvVarsInLog = 0;
 		};
 		BBF1248B1FA7BF530088FB50 /* Download Root */ = {
@@ -2740,7 +2740,6 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
@@ -2749,7 +2748,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = AA000015AF96D90D00FFB7A4 /* AppARM64.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 			};
 			name = "Debug-ApplePleaseFixFB19282108";
 		};
@@ -2757,7 +2755,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = AA000015AF96D90D00FFB7A4 /* AppARM64.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 			};
 			name = DebugLinux;
 		};
@@ -2765,7 +2762,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = AA000015AF96D90D00FFB7A4 /* AppARM64.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 			};
 			name = Release;
 		};
@@ -2773,21 +2769,20 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = AA000015AF96D90D00FFB7A4 /* AppARM64.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 			};
 			name = ReleaseLinux;
 		};
 		AA9C2BB52F44A3C700F41633 /* DebugLinux */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "iSH ARM64 ffmpeg";
+				PRODUCT_NAME = "Linpad ffmpeg test";
 			};
 			name = DebugLinux;
 		};
 		AA9C2BB62F44A3C700F41633 /* ReleaseLinux */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "iSH ARM64 ffmpeg";
+				PRODUCT_NAME = "Linpad ffmpeg test";
 			};
 			name = ReleaseLinux;
 		};
@@ -2797,7 +2792,6 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = "Debug-ApplePleaseFixFB19282108";
@@ -2879,7 +2873,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).UITests";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROOT_BUNDLE_IDENTIFIER).UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -2898,7 +2892,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).UITests";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROOT_BUNDLE_IDENTIFIER).UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_TARGET_NAME = iSH;
@@ -2937,7 +2931,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = BB0B86CD2586FD8800208600 /* App.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 			};
 			name = "Debug-ApplePleaseFixFB19282108";
 		};
@@ -2945,7 +2938,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = BB0B86CD2586FD8800208600 /* App.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 			};
 			name = Release;
 		};
@@ -2961,7 +2953,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = BB0B86CD2586FD8800208600 /* App.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 			};
 			name = DebugLinux;
 		};
@@ -2984,9 +2975,8 @@
 			baseConfigurationReference = BB0B86D52587009D00208600 /* iOS.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = app/FileProvider/iSHFileProvider.entitlements;
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 				INFOPLIST_FILE = app/FileProvider/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).FileProvider";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROOT_BUNDLE_IDENTIFIER).FileProvider";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -3003,7 +2993,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).UITests";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROOT_BUNDLE_IDENTIFIER).UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -3062,9 +3052,8 @@
 			baseConfigurationReference = BB0B86D52587009D00208600 /* iOS.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = app/FileProvider/iSHFileProvider.entitlements;
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 				INFOPLIST_FILE = app/FileProvider/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).FileProvider";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROOT_BUNDLE_IDENTIFIER).FileProvider";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -3075,9 +3064,8 @@
 			baseConfigurationReference = BB0B86D52587009D00208600 /* iOS.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = app/FileProvider/iSHFileProvider.entitlements;
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 				INFOPLIST_FILE = app/FileProvider/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).FileProvider";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROOT_BUNDLE_IDENTIFIER).FileProvider";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -3211,7 +3199,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = BB0B86CD2586FD8800208600 /* App.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 			};
 			name = ReleaseLinux;
 		};
@@ -3234,9 +3221,8 @@
 			baseConfigurationReference = BB0B86D52587009D00208600 /* iOS.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = app/FileProvider/iSHFileProvider.entitlements;
-				DEVELOPMENT_TEAM = K8Q74NT2BG;
 				INFOPLIST_FILE = app/FileProvider/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).FileProvider";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROOT_BUNDLE_IDENTIFIER).FileProvider";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -3253,7 +3239,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER).UITests";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ROOT_BUNDLE_IDENTIFIER).UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_TARGET_NAME = iSH;

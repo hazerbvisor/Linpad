@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleDisplayName</key>
-	<string>LinuxKit</string>
+	<string>Linpad</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -25,11 +25,11 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>This is required for connecting to localhost and using the ping command.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Programs running in ios-linuxkit will be allowed to track your location in the background.</string>
+	<string>Programs running in Linpad will be allowed to track your location in the background.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Programs running in ios-linuxkit will be allowed to track your location in the background.</string>
+	<string>Programs running in Linpad will be allowed to track your location in the background.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Programs running in ios-linuxkit will be allowed to see your location.</string>
+	<string>Programs running in Linpad will be allowed to see your location.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>app.ish.scene</string>
@@ -74,7 +74,7 @@
 	<string>Terminal</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UIStatusBarHidden</key>
 	<true/>

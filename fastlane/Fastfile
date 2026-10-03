@@ -1,6 +1,8 @@
+# Inherited iSH lanes below are retained for provenance, not for Linpad release.
 before_all do
-    ensure_bundle_exec
+    UI.user_error!("Legacy iSH publishing is disabled for Linpad. Use scripts/build-ios.sh; see docs/BUILDING.md.")
 end
+
 
 lane :build do |options|
     setup_ci

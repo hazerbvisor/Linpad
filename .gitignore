@@ -27,3 +27,6 @@ e2e_out/
 
 # Legacy bench scripts (replaced by benchmark/)
 bench/
+
+/build-data/
+/local.xcconfig

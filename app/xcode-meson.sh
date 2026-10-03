@@ -1,29 +1,13 @@
 #!/bin/bash
+set -e
 
-# Try to figure out the user's PATH to pick up their installed utilities.
-# Do not use sudo here: personal Apple developer machines are not always
-# configured with sudo for the GUI user, and the build only needs PATH hints.
-login_path=$(env -i HOME="$HOME" USER="$USER" SHELL="${SHELL:-/bin/zsh}" /bin/zsh -lc 'print -r -- $PATH' 2>/dev/null || true)
-if [[ -n "$login_path" ]]; then
-    export PATH="$PATH:$login_path"
-fi
-
-terax_tools=/Users/rcarmo/Build/terax
-terax_lld=$terax_tools/.tmp-lld-bottle/lld/22.1.5
-terax_llvm=$terax_tools/.tmp-llvm-bottle/llvm/22.1.5
-terax_z3=$terax_tools/.tmp-homebrew/Cellar/z3/4.15.4
-terax_zstd=$terax_tools/.tmp-homebrew/Cellar/zstd/1.5.7_1
-terax_lz4=$terax_tools/.tmp-homebrew/Cellar/lz4/1.10.0
-if [[ -x "$terax_lld/bin/ld.lld" && -d "$terax_llvm/lib" ]]; then
-    export PATH="$terax_lld/bin:$PATH"
-    export DYLD_LIBRARY_PATH="$terax_lld/lib:$terax_llvm/lib:$terax_z3/lib:$terax_zstd/lib:$terax_lz4/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
-fi
+# Use portable tool discovery shared by local and CI builds.
+. "$(dirname "$0")/build-tools.sh"
 
 mkdir -p "$MESON_BUILD_DIR"
 cd "$MESON_BUILD_DIR"
 
-config=$(meson introspect --buildoptions)
-if [[ $? -ne 0 ]]; then
+if ! config=$(meson introspect --buildoptions 2>/dev/null); then
     export CC_FOR_BUILD="env -u SDKROOT -u IPHONEOS_DEPLOYMENT_TARGET xcrun clang"
     export CC="$CC_FOR_BUILD" # compatibility with meson < 0.54.0
     crossfile=cross.txt
@@ -37,8 +21,8 @@ if [[ $? -ne 0 ]]; then
     esac
     cat | tee $crossfile <<-EOF
     [binaries]
-    c = 'clang'
-    ar = 'ar'
+    c = '$(xcrun --find clang)'
+    ar = '$(xcrun --find ar)'
 
     [host_machine]
     system = 'darwin'
@@ -56,7 +40,7 @@ EOF
     if [[ -n "$GUEST_ARCH" ]]; then
         guest_arch_opt="-Dguest_arch=$GUEST_ARCH"
     fi
-    (set -x; meson "$SRCROOT" --cross-file "$crossfile" $guest_arch_opt \
+    (set -x; meson setup "$SRCROOT" --cross-file "$crossfile" $guest_arch_opt \
         -Djit=false -Djit_emit=false -Dcli_aot=) || exit $?
     config=$(meson introspect --buildoptions)
 fi
@@ -67,7 +51,7 @@ if [[ $CONFIGURATION == Release ]]; then
     buildtype=debugoptimized
 fi
 b_sanitize=none
-if [[ -n "$ENABLE_ADDRESS_SANITIZER" ]]; then
+if [[ ${ENABLE_ADDRESS_SANITIZER:-NO} == YES ]]; then
     b_sanitize=address
 fi
 log=$ISH_LOG
