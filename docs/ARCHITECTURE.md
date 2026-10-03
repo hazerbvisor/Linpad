@@ -1,7 +1,8 @@
 # Linpad architecture
 
-**Experimental:** imported ARM64 terminal app; Linux-host cross-compilation and
-rootfs packaging validated. Apple compilation and on-device execution pending.
+**Experimental:** ARM64 terminal app; Linux-host cross-compilation and rootfs
+packaging validated. User reports the installed app working after the startup
+fix. Device execution is not independently verified on this development host.
 The detailed imported runtime design is preserved in
 [ARCHITECTURE.upstream.md](ARCHITECTURE.upstream.md).
 
@@ -10,7 +11,7 @@ Apple Silicon iPad / native iPadOS app (host sandbox and host kernel)
   -> ARM64 ios-linuxkit / iSH syscall compatibility + Asbestos gadgets
   -> Alpine AArch64 userspace / ordinary Linux ELF programs
   -> bundled xterm.js Canvas terminal frontend today
-  -> X11 -> display bridge -> native presentation                 [Planned]
+  -> X11/Xvfb -> atomic XWD files -> bounded RGBA -> UIKit         [Experimental]
 ```
 
 Guest basic blocks are decoded into data containing pointers to precompiled
@@ -26,15 +27,17 @@ The imported optional native/AOT research is not enabled by Linpad.
 | asbestos/guest-arm64, emu | AArch64 decoder, gadgets, TLB and execution | Imported; ARM64 cross-build verified |
 | kernel | Linux syscall/process/memory/synchronization compatibility | Imported; runtime validation pending here |
 | fs, platform | Fakefs, descriptors, sockets, host OS adaptation | Imported; packaging verified |
-| app | Native application, terminal UI, sandbox filesystem integration | Imported/rebranded; Apple build pending |
+| app | Native application, terminal UI, sandbox filesystem integration | User-reported working; new display build pending on Xcode |
 | app/RootfsPatch.bundle | Small Alpine startup overlay | Imported/rebranded |
-| scripts, tests/linpad | Optional guest audit and headless X11 evidence | Experimental; host controls only |
-| app/Display/DisplayServer | Future host display adapter | Planned; directory/code not created yet |
-| app/Display/Input | Future UIKit event to protocol input adapter | Planned |
-| app/Display/Surface, app/Metal | Future bounded buffers and presentation | Planned |
+| scripts, tests/linpad | Guest audit, optional X11 sessions and display controls | Experimental; native host controls passed |
+| app/Display/DisplayServer | App-owned session files, bounded reads and input mailbox | Experimental |
+| app/Display/Input | UIKit hardware keys to X keysyms | Experimental |
+| app/Display/Surface | Validated XWD to immutable RGBA snapshots | Host controls passed |
+| app/Display/X11ViewController | Optional UIKit image view and pointer/touch input | Compiled against iOS reference headers; device pending |
+| app/Metal | Future Metal presentation | Planned; absent |
 
 Preserve existing upstream paths rather than renaming the runtime wholesale.
-The future display adapter receives bounded immutable frame snapshots and sends
+The display adapter receives bounded immutable frame snapshots and sends
 bounded input messages through an explicit session interface. UIKit and Metal
 remain in `app`; runtime code must not depend on either. Guest descriptors and
 addresses are opaque to the host adapter. A future fd bridge must resolve them

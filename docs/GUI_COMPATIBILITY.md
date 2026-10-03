@@ -28,8 +28,8 @@ must be recorded separately; native host control results do not change this tabl
 | epoll | | Source; edge/oneshot and close races require audit | | Servers, GLib event loops |
 | eventfd | | Counter read/write; EFD_SEMAPHORE rejected | | GLib/Qt; render signaling |
 | pipe / pipe2 / PTY | Source | | | xterm; launchers; session IO |
-| X11 server and local protocol transport | | Optional Xvfb scripts supplied, unexecuted in Linpad | No bundled display server | xclock/xterm |
-| Native graphical output/input | | | No guest GUI view/input adapter | Visible interactive iPad window |
+| X11 server and local protocol transport | | Optional Alpine Xvfb session supplied; guest execution pending | No bundled display server | xclock/xterm |
+| Native graphical output/input | | XWD/UIKit viewer + XTEST mailbox implemented; device pending | | Visible interactive iPad window |
 | DRM / /dev/dri / GBM / GPU driver | | | No Linux GPU device | Mesa hardware paths |
 | Wayland compositor / buffer export | | | No Linpad compositor | Wayland milestone |
 
@@ -66,6 +66,9 @@ was downloaded and verified as AArch64 ELF with the musl AArch64 interpreter;
 it was not executed successfully in Linpad.
 
 Start with xclock + Xvfb, core fonts, Xlib/Xt/Xaw and CPU pixman rendering.
+The native Xeyes host control currently maps but does not redraw pupils after
+XTEST pointer motion; disabling Present/Render did not resolve it. This is an
+unresolved control failure, not a Linpad guest result.
 Then test xeyes (Shape/XInput/Render dependencies) and xterm (PTY, terminal input,
 fonts, locale). GTK3 with X11 and software Cairo is a later candidate. GTK4/Qt,
 Openbox/XFCE and D-Bus add dependencies and must wait for the first interactive

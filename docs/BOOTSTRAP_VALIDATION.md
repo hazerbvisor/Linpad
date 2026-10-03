@@ -1,7 +1,8 @@
 # Bootstrap validation record
 
 Session: 2026-10-03. Host: Debian 13 Linux **x86_64**, no Xcode/Apple SDK,
-no attached AArch64 execution host and no iPad. Foundation:
+no attached AArch64 execution host and no iPad. Later targeted compile audits use
+public iPhoneOS reference headers, not an installed full Xcode. Foundation:
 `c1a4064e84f1a957280a62f77d107162032dc908`.
 
 ## What passed
@@ -239,3 +240,54 @@ Validation completed here:
 A complete current Xcode app build, signed installation and on-iPad Alpine shell
 still require a rerun. A JavaScript terminal renderer is not the Linux X11 xterm
 application, an X11 bridge, Metal presentation or application GPU acceleration.
+
+## First display implementation
+
+Branch `feature/phase1-x11` starts from main after the user merged the startup
+fix and reported “its working”. This is user-reported app success; the development
+host cannot independently record Alpine boot or interact with that iPad.
+
+The optional guest session now launches real Xvfb and ordinary packaged clients,
+atomically publishes xwd snapshots and consumes bounded XTEST input records. A
+separate UIKit viewer, Foundation session, C XWD decoder and no-follow file bridge
+are added. There is no VNC, native X server, Metal presentation or GPU bridge.
+
+Independent validation in this session:
+
+- Seven changed/new native implementation files (including Session, Keysym,
+  X11ViewController, TerminalViewController, CurrentRoot and the two C parsers)
+  compiled into ARM64 iOS objects with Clang 19/public iPhoneOS 16.5 headers.
+  This is not a full current-Xcode application link or IPA build.
+- The real XWD decoder and file bridge passed address/undefined sanitizers: both
+  byte orders and 24/32-bit pixels, truncated/overflowed headers, unsafe geometry,
+  symlink/hardlink/FIFO rejection, malformed commands and mailbox limits. Actual
+  800×600 host Xclock/Xterm frames decoded into nonblack RGBA pixels.
+- Real native Linux Xclock mapped, changed its clock pixels, consumed mailbox
+  pointer records through XTEST and stopped cleanly. Native Linux Xterm mapped
+  and key down/up records typed a command through its real PTY, creating a file
+  with the expected contents. These are Debian x86_64 controls, **not Alpine
+  AArch64 applications running under Linpad**.
+- Fifteen existing Python dependency/log regressions passed. Codemagic's official
+  YAML schema, all seven shell steps, guest shell syntax, overlay resource paths
+  and ARM64 Xcode target source references passed. Existing ARM64 Linux runtime
+  libraries and CLI rebuilt and linked successfully.
+
+Failures found while validating:
+
+- Malformed-header controls found unchecked XWD bits-per-RGB/color-map fields;
+  explicit constraints were added and sanitizer controls passed.
+- Xterm shells can replace WM_NAME immediately, defeating the original name-based
+  readiness check even with an explicit title. Readiness/focus now search the
+  stable Xt instance class and query its window ID.
+- An early Xterm control checked the old snapshot immediately after shell input
+  completed; the control now waits for the next published frame.
+- Native Xeyes 1.3.0 mapped and produced a valid frame, but its pupils did not
+  change after XTEST pointer motion. Disabling Present or Render did not fix it;
+  XInputExtension cannot be disabled in this Xvfb. This host control remains a
+  recorded failure, with no inferred Alpine/iPad compatibility claim. Xclock is
+  the first-window acceptance target and Xterm is the keyboard target.
+
+Next acceptance: Codemagic full build of this branch, signed installation, optional
+Alpine package install and live changing Xclock on iPad, then Xterm hardware
+keyboard/PTY and Xeyes touch/pointer tests. Capture the GUI report and guest logs.
+Milestones 2 and 3 remain experimental until those physical-device checks pass.

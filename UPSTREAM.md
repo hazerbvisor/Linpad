@@ -115,6 +115,9 @@ binaries, private APIs, entitlements or package recipes were copied.
 - Linpad user-facing name, configurable bundle identifier, retained internal
   upstream names, and disabled legacy iSH publishing lanes.
 - Repo-relative default benchmark/report paths.
+- Separate Linpad-authored XWD decoder, bounded sandbox file bridge, UIKit viewer
+  and hardware-key/pointer input. Optional guest Xvfb/XTEST session delivered via
+  the rootfs overlay; no Xios code copied or runtime/UI coupling introduced.
 - Optional Alpine X11 package installer, headless xclock capture and executable
   GUI syscall prerequisite probes, separate from the runtime.
 - Manual Codemagic Apple Silicon workflow for unsigned ARM64 compilation,
@@ -122,5 +125,5 @@ binaries, private APIs, entitlements or package recipes were copied.
 - Architecture, build, audit, validation and roadmap documentation with explicit
   working/experimental/planned/unsupported status.
 
-No instruction execution backend was replaced. No GUI implementation or guest
-GPU acceleration has been demonstrated on iPad.
+No instruction execution backend was replaced. The GUI bridge is experimental; no live Alpine GUI or guest GPU acceleration has
+been independently demonstrated on iPad.
