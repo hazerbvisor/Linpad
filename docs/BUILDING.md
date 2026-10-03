@@ -85,29 +85,42 @@ or the Codemagic workflow below. Store signing credentials outside this reposito
 [The root codemagic.yaml](../codemagic.yaml) defines `linpad-ios-unsigned`, a manual
 workflow on an Apple Silicon M2 macOS builder with `xcode: latest`. It calls the
 same `scripts/build-ios.sh` used locally. **The first reported Codemagic app build
-failed at Apple's deprecated `ucontext.h` feature-macro gate.** The host-context
-header fix uses public signal-context types; full Apple app compilation and IPA
-packaging still need a successful rerun. See [validation evidence](BOOTSTRAP_VALIDATION.md).
+failed at Apple's deprecated `ucontext.h` feature-macro gate.** After that fix,
+a later excerpt reported another Ninja failure but omitted its failing command.
+The broader audit now repairs a missing Darwin dispatch header, conflicting
+gadget definitions and incompatible socket/syscall dispatch casts. Full Apple
+app compilation and IPA packaging still need a successful rerun. See [validation evidence](BOOTSTRAP_VALIDATION.md).
 The YAML passed Codemagic's official JSON schema, all shell steps passed syntax
 checks, and a failing build control retained its error status/log through `tee`.
 
 1. Connect `hazerbvisor/Linpad` in Codemagic and use its repository YAML configuration.
-2. Select `fix/apple-ucontext-build` to test the compiler fix before its PR is
+2. Select `fix/apple-build-audit` to test the build/dispatch fixes before their PR is
    merged; afterward select `main`.
 3. Start workflow `linpad-ios-unsigned` manually. No automatic triggers are configured.
-4. Download `Linpad-unsigned.ipa`, `xcodebuild.log`, the toolchain/dependency logs
+4. Download `Linpad-unsigned.ipa`, `xcodebuild.log`, `build-errors.log`, the toolchain/dependency logs
    and `Linpad-build.xcresult` from build artifacts. Logs and any generated result
    bundle are collected on failure too; the IPA is produced only after a successful build.
 
 The workflow installs Meson, Ninja and Python, initializes only the pinned
-`deps/libapps` submodule, verifies/downloads the pinned libarchive, runs the eleven
-prebuilt regression checks, then builds the `iSH-ARM64` Release scheme for a generic
+`deps/libapps` submodule, verifies/downloads the pinned libarchive, runs dependency
+and build-log regression checks, then builds the `iSH-ARM64` Release scheme for a generic
 iOS ARM64 device. The Xcode phases verify the guest VDSO and download/verify Alpine
 AArch64. They do not compile a Linux kernel or guest applications.
 
 Before the full app build, an ARM64 signal-context check compiles/runs natively on
 macOS and syntax-checks against the selected iPhoneOS SDK. It checks register,
 PC/SP and exception-status helpers without installing handlers or enabling JIT.
+A separate native control checks typed syscall argument/return widths and all
+18 legacy socket mappings, including guest-copy faults, with undefined-behavior
+sanitization. These controls are not Alpine execution results. After Ninja,
+compiled runtime gadget symbols are checked for duplicate definitions.
+
+Meson now receives explicit SDK and deployment flags for both compile and link
+steps. The app explicitly links Apple's SDK SQLite library used by fakefs;
+link dependencies discovered by Meson are not automatically passed to Xcode.
+Ninja uses `-k 0` to collect all independent failures in one attempt. The build
+step preserves its error status and creates `build-errors.log` with earlier
+compiler/linker errors and context, even when later warnings fill the log tail.
 The shared project minimum is iOS 15.0, matching the app and libarchive dependency,
 including preparatory and extension targets.
 

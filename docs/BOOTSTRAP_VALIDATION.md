@@ -131,3 +131,64 @@ Local checks on the x86_64 Linux development host:
 Required next evidence: rerun `linpad-ios-unsigned` on the fix branch with Xcode
 26.6/SDK 26.5. The new native helper test has not run on an Apple host here;
 a successful full app link and on-iPad Alpine CLI launch remain unverified.
+
+## Broader Apple compile/link and dispatch audit
+
+A later user-supplied Codemagic excerpt ended with 18 socket function-pointer cast
+warnings and `ninja: build stopped`. It omitted the earlier `FAILED:` command and
+fatal diagnostic. These warnings alone do not identify the observed failure;
+the exact failure from that run remains unconfirmed without its full log.
+
+Branch `fix/apple-build-audit` was based on main after the ucontext fix was merged.
+A source-wide ARM64 iOS audit reproduced missing `dispatch_once_t`/`dispatch_once`
+declarations in `platform/darwin.c`; it now explicitly includes the public dispatch
+header. Initial PATH_MAX failures in two files were traced to a missing limits.h
+in the scratch reference SDK; both source files already included it correctly
+and required no changes. After SDK setup was corrected, all runtime sources compiled.
+
+The full-object Mach-O link exposed four duplicate gadget definitions (sxtw,
+uxtb, uxth and rev32) in bits.S/math.S. Static archive extraction had hidden these
+in the Linux CLI link. Redundant placeholder definitions were removed from bits.S;
+the generator's existing math.S implementations retain their stream/operand ABI.
+The build now rejects duplicate gadget symbols even when normal extraction would
+hide them. SDK SQLite is explicitly linked, and the Xcode Meson bridge sets SDK
+and deployment flags for both compilation and linking instead of relying on
+compiler environment inference.
+
+Both the 211 distinct ARM64 syscall handlers and all 18 legacy socketcall handlers
+now have correctly typed adapters. Syscall numbers and existing full-width result/
+errno normalization are preserved. The legacy dispatcher was separated into
+fs/socketcall.c with the same 32-bit guest words and unsupported entries; it reads
+only the selected arity and no longer evaluates uninitialized unused words or
+invokes functions through an incompatible six-argument function type.
+
+Checks passed on the x86_64 Linux development host:
+
+- All **88** runtime C/assembly sources compiled to ARM64 iOS Mach-O objects with
+  Clang 19.1.7, the non-JIT defines, generated offsets and real public iPhoneOS 16.5
+  reference SDK headers. The SDK/tools remain untracked scratch data.
+- All runtime objects linked with ld64.lld into an ARM64 iOS audit dylib against
+  the reference SDK's system/Foundation/CoreFoundation/SQLite stubs. A second
+  link included the **actual pinned iOS libarchive static binary** and newly
+  compiled fakefs import/export client, plus SDK iconv/xml2/pthread. No unresolved
+  symbols or duplicate definitions remained. These are audit libraries, not IPAs.
+- ARM64 Linux runtime/CLI rebuild passed; the backend archive has **757 unique
+  gadget definitions**. The checker also passed an archive of the Apple-target
+  Mach-O backend objects and rejected the original Linux archive's duplicates.
+- Native host syscall adapters passed arities 0-6, signed errors, unsigned results,
+  full-width addresses/offsets and narrowing controls. The real legacy dispatcher
+  passed all 18 mappings, signed argument/error checks, exact copy lengths, guest
+  copy faults, and invalid/unsupported call paths. Both ran with Clang's undefined-
+  behavior and function-call sanitizers; these are controls, not guest execution.
+- Fifteen Python dependency/log-summary regression tests passed. A failed-build
+  control retained status 65 and the earlier fatal diagnostic in build-errors.log.
+- Actual bridge controls generated matching SDK/compile/link flags for device,
+  simulator and macOS, including paths with spaces/apostrophes, parsed with Meson's
+  machine-file parser. Codemagic's official
+  YAML schema and all seven shell-step syntax checks passed.
+
+Ninja now uses -k 0 to collect independent compiler failures in one attempt.
+Codemagic keeps the complete log and an error/context summary while preserving
+the failed build status. Required next evidence remains a successful full Xcode
+26.6/iPhoneOS 26.5 app build on the new branch, then signed installation and Alpine
+CLI launch. No app execution, GUI, new JIT requirement or GPU acceleration is claimed.
