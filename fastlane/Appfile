@@ -1,0 +1,2 @@
+# Legacy release automation is disabled. Linpad uses scripts/build-ios.sh.
+# Configure signing explicitly with xcodebuild; no inherited Apple identity.
