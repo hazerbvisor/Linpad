@@ -23,6 +23,9 @@ add_project_arguments('-DLOG_HANDLER_' + get_option('log_handler').to_upper() + 
 add_project_arguments('-DENGINE_' + get_option('engine').to_upper() + '=1', language: 'c')
 
 guest_arch = get_option('guest_arch')
+if host_machine.cpu_family() != 'aarch64'
+    error('The ARM64 Asbestos runtime requires an AArch64 host; use an ARM64 machine or a cross file for compilation only')
+endif
 ish_jit = get_option('jit')
 if ish_jit
     if host_machine.cpu_family() != 'aarch64' or host_machine.system() not in ['darwin', 'linux']
@@ -196,7 +199,7 @@ if get_option('kernel') == 'ish'
         sources: offsets,
         include_directories: includes)
 
-    if not meson.is_cross_build()
+    if not meson.is_cross_build() or host_machine.system() == 'linux'
         executable('ish', ['main.c'] + get_option('cli_aot'), dependencies: ish,
             export_dynamic: ish_jit)
     endif

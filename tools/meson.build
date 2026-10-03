@@ -17,6 +17,7 @@ if libarchive.found()
     fakefsify_src = [
         'fakefsify.c',
         'fakefs.c',
+        'packaging-log.c',
         '../util/fchdir.c',
     ]
     fakefsify = executable('fakefsify', fakefsify_src, dependencies: [libarchive], link_with: [libfakefs], include_directories: [includes])
