@@ -40,9 +40,27 @@ Other upstream documentation and dated reports remain attributed historical evid
 
 `deps/linux` is retained for provenance with upstream's `update = none`; the
 supported Linpad build uses `kernel=ish` and does not build or boot this kernel.
-Only libapps and libarchive are needed for the iOS terminal app. The app bundles
+Only libapps needs initialization for the supported ARM64 iOS app; its
+libarchive dependency now uses the separately pinned binary below. The original
+libarchive submodule/project is retained for provenance and legacy source builds. The app bundles
 Ghostty Web, WASM terminal support and fonts with their existing vendoring notices.
 Those render terminal text, not Linux X11 windows.
+
+## Prebuilt dependencies
+
+The ARM64 app links Matteo Pacini's `libarchive-for-swift` **v1.0.0** release
+containing libarchive **3.8.7** and bundled compression libraries. The exact URL,
+archive/member SHA-256 pins and iOS 15 minimum are recorded in
+`config/prebuilt-libarchive.json`. Source and unmodified dependency notices:
+https://github.com/matteo-pacini/libarchive-for-swift/tree/v1.0.0 . Notices are
+tracked in `app/ThirdPartyNotices.bundle` and included in the ARM64 app resources.
+No downloaded binary is treated as original Linpad code.
+
+The small guest VDSO is compiled from the imported ios-linuxkit ARM64 source
+and stored in `vdso/arm64/prebuilt`, with binary/source/header hashes, compiler
+and command in its manifest. This ELF is embedded as guest data; it does not
+replace the native ARM64 interpreter or link a Linux library into iOS.
+Source regeneration and validation details: [PREBUILT_DEPENDENCIES.md](docs/PREBUILT_DEPENDENCIES.md).
 
 ## Licensing
 
@@ -68,6 +86,9 @@ binaries, private APIs, entitlements or package recipes were copied.
 
 ## Linpad changes after the import
 
+- Verified prebuilt iOS libarchive with bundled license notices; cached download
+  and selected-slice linking replace the ARM64 app's libarchive source build.
+- Validated guest VDSO reuse with source/header pins and an explicit rebuild path.
 - Portable Xcode tool discovery; remove personal tool paths and signing teams.
 - ARM64-only host diagnostics and a Linux cross-compilation CLI target.
 - Standalone fakefsify logging to repair the packaging tool's unresolved symbols;

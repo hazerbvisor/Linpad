@@ -3,3 +3,13 @@
 
 // ARM64 app release version, independent of inherited non-ARM64 targets.
 MARKETING_VERSION = 2.4.1
+
+// Verified libarchive v1.0.0 binary package (libarchive 3.8.7), iOS 15+.
+IPHONEOS_DEPLOYMENT_TARGET = 15.0
+LINPAD_PREBUILT_DIR = $(SRCROOT)/build-data/prebuilt
+LINPAD_LIBARCHIVE_SLICE_iphoneos = ios-arm64
+LINPAD_LIBARCHIVE_SLICE_iphonesimulator = ios-arm64_x86_64-simulator
+LINPAD_LIBARCHIVE_SLICE = $(LINPAD_LIBARCHIVE_SLICE_$(PLATFORM_NAME))
+LINPAD_LIBARCHIVE_DIR = $(LINPAD_PREBUILT_DIR)/libarchive-1.0.0/libarchive.xcframework/$(LINPAD_LIBARCHIVE_SLICE)
+HEADER_SEARCH_PATHS = "$(LINPAD_LIBARCHIVE_DIR)/Headers" $(inherited)
+OTHER_LDFLAGS = $(inherited) "$(LINPAD_LIBARCHIVE_DIR)/libarchive.a" -liconv -lxml2 -lpthread

@@ -23,9 +23,9 @@ if command -v brew >/dev/null 2>&1; then
         fi
     done
 fi
-for linpad_tool in meson ninja python3 clang ld.lld; do
+for linpad_tool in meson ninja python3 clang; do
     if ! command -v "$linpad_tool" >/dev/null 2>&1; then
-        echo "Missing $linpad_tool. Install Meson, Ninja, Python, LLVM and LLD; see docs/BUILDING.md." >&2
+        echo "Missing $linpad_tool. Install Meson, Ninja and Python; see docs/BUILDING.md." >&2
         exit 1
     fi
 done

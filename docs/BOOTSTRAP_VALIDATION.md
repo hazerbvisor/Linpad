@@ -69,3 +69,30 @@ filesystem persistence in the exact app. Run GUI probes in that app, then real
 Alpine Xvfb/xclock. A mapped window/XWD on the host is insufficient: Milestone 2
 requires a live visible window on the iPad, and Milestone 3 requires verified
 GUI touch/keyboard interaction. Do not mark either complete until that happens.
+
+## Prebuilt dependency follow-up
+
+Same Linux host/date; branch `feature/prebuilt-dependencies`, based on merged
+bootstrap main. No new Apple/device runtime claim.
+
+- Downloaded and verified the actual `libarchive-for-swift` v1.0.0 XCFramework
+  archive (SHA-256 in `config/prebuilt-libarchive.json`). Inspected the ARM64
+  device Mach-O static archive and iOS 15.0 minimum. Found all 50 libarchive APIs
+  used by Linpad's fakefs import/export implementation; that source passed a
+  host syntax check against the replacement headers. Preserved the tagged
+  wrapper/compression/libarchive license notices in application resources.
+- Verified real archive extraction and offline reuse with per-member hashes.
+  Eleven regression tests passed, including artifact failure paths and stale or
+  invalid guest VDSO rejection.
+- Fresh default/prebuilt ARM64 Linux cross-build compiled `libish.a`,
+  `libish_emu.a`, `libfakefs.a` and linked the AArch64 Linux CLI. Its Ninja VDSO
+  rule validates/copies the payload with Python; it does not invoke an ELF compiler.
+- Independent `-Dvdso_mode=source` compilation produced byte-identical guest
+  VDSO content with Clang/LLD 19.1.7. Source rebuild support is retained.
+- Xcode project syntax and ARM64 target references were checked. A failing
+  preparation command was exercised through the actual parsed shell phase and
+  halted before native compilation. Standard build
+  dependencies no longer require LLVM/LLD or the libarchive source submodule.
+  Apple SDK linking, signing, runtime launch and rootfs import/export with the
+  replacement libarchive are still unverified. Test with current Xcode on an
+  Apple Silicon builder and an iPad running iPadOS 15 or later.
