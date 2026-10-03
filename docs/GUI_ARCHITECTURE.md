@@ -1,96 +1,135 @@
 # First X11 window
 
-**Planned interactive architecture; experimental headless tooling only.**
-No Alpine GUI has run inside Linpad in this session and no iPad graphical output
-has been demonstrated. [Validation](BOOTSTRAP_VALIDATION.md) distinguishes native
-host controls from guest execution.
+**Experimental implementation; iPad GUI proof pending.** The user reports the
+terminal app working after the startup fix. This branch adds the first real X11
+display path. Native Linux host controls verify real Xclock/Xterm protocol and
+input mechanics; they are not Alpine AArch64 execution under Linpad.
 
 ## Options evaluated
 
-| Option | Benefits | Costs / blocking assumptions | Decision |
+| Option | Benefits | Costs / assumptions | Decision |
 | --- | --- | --- | --- |
-| A: guest X server -> software framebuffer -> host view | Existing complete X11 protocol; ordinary unmodified Alpine clients; no native FD export required for a file snapshot | Xvfb syscall compatibility unverified; validated XWD reader and live synchronization/input bridge needed | Provisional MVP selection |
-| B: X11 socket -> native Linpad X server | Direct host rendering and input; fewer guest server processes | A complete X server needs extensive protocol/extensions/fonts/security support; minimal fake implementations cannot run ordinary xterm reliably | Defer; do not write a toy X server |
-| C: guest Xvnc -> embedded native RFB viewer | Existing real server; framebuffer and input protocol; no shared FD handoff; useful fallback | More dependencies and copies; bounded authenticated RFB decoder needed; viewer licensing must be checked | Temporary fallback if A's display/input integration is too costly |
+| A: guest X server → software framebuffer → host view | Complete existing X11 implementation; unmodified Alpine clients; no native FD export | Guest Xvfb compatibility unverified; copied snapshots are expensive | Selected for this proof |
+| B: X11 socket → native Linpad X server | Direct presentation and input | Implementing the complete protocol/extensions/fonts is substantial; a toy server cannot prove ordinary application compatibility | Deferred |
+| C: guest Xvnc → embedded RFB viewer | Existing real server and input protocol; no shared FD export | Extra dependencies, viewer licensing and validated RFB decoding; temporary only | Fallback if guest Xvfb cannot work |
 
-Select **A with Alpine Xvfb** for the first protocol/framebuffer subproof. It is
-available in the exact pinned Alpine release, uses software rendering, and
-`-fbdir` exports XWD-formatted screen storage without inventing an X protocol
-implementation. Do not launch a hardware Xorg server or require `/dev/dri`.
-Guest-only MIT-SHM can be tested later; disable optional extensions if needed
-and retain ordinary X11 socket rendering as a fallback.
+Current path:
 
-The committed optional installer and runner start a real `xclock`, wait for its
-mapped X11 window, query the server, and capture `root.xwd` and `Xvfb_screen0`.
-They retain client/server logs and package versions, use xauth, and disable TCP
-listeners. These scripts work as a native Debian host control; their Linpad guest
-execution remains unverified. This is a protocol subproof, not Milestone 2.
+```text
+Alpine AArch64 xclock / xeyes / xterm (ordinary packaged ELF)
+  → guest Unix X11 socket + Xauthority
+  → Alpine Xvfb (CPU software rendering; TCP, GLX and MIT-SHM disabled)
+  → guest xwd snapshots → atomic frame.xwd rename
+  → bounded app-owned file reader → validated immutable RGBA
+  → CoreGraphics / UIKit UIImageView → iPad display
 
-## Route to the actual on-iPad proof
+UIKit touch / pointer / hardware keys
+  → bounded precreated input mailbox
+  → guest shell parser → Alpine xdotool → XTEST → actual X11 client
+```
 
-1. Build the unchanged terminal foundation with Apple tools and launch Alpine
-   BusyBox/apk on an M-series iPad. Record revision, app identity, signed archive,
-   iPadOS and device; fix baseline failures before GUI host integration.
-2. Run `scripts/run-gui-probe.sh` inside that runtime, then install optional X11
-   packages and run `scripts/run-x11-poc.sh`. Keep the base rootfs unchanged.
-3. Build a separate `app/Display/Surface` reader for app-owned framebuffer files.
-   Resolve guest paths through a narrow, checked fakefs interface; never accept
-   arbitrary host paths from guest code. Parse the real XWD header, byte order,
-   dimensions, depth, masks, stride, color tables and data bounds. Bound buffers
-   (initially 800×600 with an explicit memory cap), reject unsupported formats,
-   snapshot consistently while the server writes, and handle resize generations.
-   Start with a safe copied CPU snapshot, then optimize. Merely displaying a
-   downloaded screenshot does not prove live Linux execution.
-4. Add an optional GUI screen to `app/UI` using public iOS drawing APIs first,
-   with session cancellation and a terminal-only fallback. Confirm the running
-   clock changes and its window appears on the physical iPad.
-5. Implement pointer/button/keyboard injection through a guest helper using XTEST
-   and a bounded local session channel. The native view sends logical coordinates
-   and explicit key/button up/down transitions; the guest helper owns Xlib calls.
-   Do not inject through unrelated process fds or alter syscall code to call UIKit.
-6. Verify focus, hardware keyboard text/modifiers, touch click/drag and mouse
-   pointer movement with real xterm/xeyes. Capture live/device evidence and an
-   interaction log before marking Milestones 2 and 3 complete.
+Explicit snapshots avoid depending on guest MAP_SHARED coherence with native
+Darwin mappings. xwd reads the running X server; no supplied screenshot or native
+recreation of a Linux application is used. A 500 ms producer and host timer give
+a provisional 2 FPS ceiling, not a measured iPad frame rate. This path has CPU
+copies and disk IO. It uses **no VNC, native X server, Metal presenter or Linux
+application GPU acceleration**.
 
-A is provisional until the guest server and XTEST path work on Darwin. If Xvfb
-fails, use logs and focused syscall probes to locate missing semantics. If a
-robust live framebuffer/input bridge needs excessive X server changes, try C:
-Alpine Xvnc CPU rendering with a bounded embedded viewer. Bind only app-local
-loopback, authenticate the connection, validate RFB dimensions/rectangle lengths,
-cap decompression/allocations and limit queued updates. No public VNC service,
-external remote desktop or unapproved native socket capability is part of the MVP.
-That path must be labeled temporary VNC software rendering and later replaced.
+## Try on iPad
 
-## Input and scaling contract
+1. Build `feature/phase1-x11` using the existing Codemagic workflow or xcodebuild,
+   sign the resulting IPA and install it. Keep the working terminal available.
+2. Tap the terminal gear and select **Linux GUI (experimental)**. Tap **Copy
+   install command**, then **Return to Terminal (keep GUI session)**. Paste/run:
+   `sh /usr/share/linpad/install-x11.sh`. Packages are optional, installed from
+   the existing Alpine AArch64 repositories; the base rootfs stays small.
+3. Reopen Linux GUI, select **xclock**, and tap **Copy start command**. Return to
+   Terminal using the keep-session button and run that command. It includes the
+   viewer's fresh 32-digit hex session ID. Leave the command running in the
+   foreground; reopen Linux GUI to see its live framebuffer.
+4. Confirm the clock changes. Test xeyes pointer movement and xterm text/Return
+   with a hardware keyboard in fresh sessions. **Done** stops the guest session;
+   reopening creates a new ID. **Return to Terminal** preserves the current ID.
+   The viewer does not install packages or launch a desktop automatically.
+5. Retain **Copy GUI report**, the displayed build revision, device/iPadOS version
+   and `/tmp/linpad-x11-<id>/{server.log,client.log,window.txt,packages.txt,context.txt}`.
+   A successful device test requires the real packaged app running in Linpad,
+   changing visible pixels, and actual input responses.
 
-The first phase needs touch -> pointer/left click, external pointer movement and
-hardware key press/release for xterm; none is implemented for GUI yet. The existing
-terminal keyboard is a separate text-terminal bridge. Convert UIKit points to
-guest logical pixels exactly once, clamp to framebuffer bounds, and keep Retina
-scale distinct from desktop resolution. Release modifiers/buttons on loss of
-focus, cancellation and backgrounding. Scroll/right click/software keyboard and
-Magic Keyboard gestures follow once basic interaction is proven.
+Native Xeyes currently maps but fails the changing-pupil control; its input
+behavior is unresolved. Start with Xclock and Xterm; do not interpret selecting
+Xeyes as a compatibility guarantee.
+
+If installation fails, retain apk's exact error and `/etc/apk/repositories`.
+The matching Alpine release's main/community repositories must be available;
+the installer does not silently switch releases or upgrade the rootfs.
+If the session fails or shows no frame, return to Terminal to read its output and
+logs. Stop with Ctrl-C if Done cannot reach the input mailbox. Keep the terminal
+baseline intact while diagnosing concrete missing syscalls. No desktop packages
+or GPU experiments are started before this window proof succeeds.
+
+## Module boundary and untrusted files
+
+- `app/Display/Surface/XWD.c`: standalone C decoder. Accepts version-7 ZPixmap
+  TrueColor RGB888, 24/32-bit pixels and either byte order; validates header,
+  masks, stride, color-table offsets and exact pixel length. Caps geometry at
+  1024×768 and files at 4 MiB. Unsupported formats are explicit failures.
+- `app/Display/DisplayServer/FileBridge.c`: fixed session/file names below the
+  selected root's app-owned fakefs `data` directory. Opens each descendant with
+  `openat`/`O_NOFOLLOW`, rejects symlinks, FIFOs, devices and multiply linked files,
+  and bounds log/frame reads. Guest-provided host paths are never accepted.
+- `Session.m`: Foundation/serial queue owns descriptors and a pausable timer.
+  Delivers immutable RGBA on the main queue, skips identical snapshots and keeps
+  at most one decoded frame queued. Does not export guest FDs or call UIKit.
+- `Input/Keysym.m` and `X11ViewController.m`: public UIKit controls, aspect-fit
+  geometry and input. Runtime/syscall/emulation files have no UIKit dependencies.
+- Rootfs overlay version 6 installs the two small guest scripts. Failed/short
+  writes do not advance the overlay marker, so installation can retry on boot.
+
+The guest creates the input inode before native appends, preserving fakefs
+metadata. Each native input record is at most 80 bytes; command names, numeric
+bounds and keysyms use a closed grammar. The guest parser repeats validation,
+never uses eval, and tracks held keys. The append-only mailbox is capped at
+64 KiB plus 128 bytes reserved for release/stop; restart a full session. Logs
+are capped at 16 KiB per native read; the report shows only a short tail. Guest
+processes can modify their own files, but those bytes are never trusted as host
+paths, allocation sizes or rendering commands. No extra entitlements, host
+control sockets or broader filesystem permissions are added.
+
+Frame files are normally published by atomic rename. In-place malicious edits
+can make a frame inconsistent; every read is bounded and decoded independently.
+Xvfb's server and Xauthority lifecycle belong to xvfb-run. Done sends release
+and stop; guest cleanup releases keys and reaps the client. Backgrounding or
+hiding the viewer releases keys and pauses host reads. Device suspension/force
+quit, memory pressure and fakefs/Darwin coherence still need physical testing.
+
+## Input and scaling
+
+Implemented experimentally: touch left tap, pointer movement through touch pan
+or mouse/trackpad hover, and hardware key down/up for basic text, navigation,
+modifiers and F1–F12. Modifier events in a simultaneous batch are ordered before
+ordinary presses and after releases. Focus/cancellation/backgrounding sends
+release. UIKit points map once to guest pixels with letterbox bounds checking;
+Retina scale does not multiply the X11 desktop resolution.
+
+Not implemented yet: held-button dragging, right click, scroll, software keyboard,
+IME/composed text and full layout/modifier reconciliation. Physical keyboard
+mapping and Magic Keyboard delivery need iPad validation. The terminal keyboard
+remains separate. Do not claim Milestone 3 complete from native input controls.
 
 ## Native presentation and later protocols
 
-Move CPU-frame presentation to validated host buffers, IOSurface where useful,
-Metal textures and CAMetalLayer in Milestone 5. Keep a stable display/session
-interface so a VNC experiment can be replaced. Avoid holding runtime memory locks
-while calling the UI or submitting GPU work. Triple/bounded buffering, damage
-tracking, fences and measured copy counts follow correctness.
+Milestone 5 will replace snapshots with validated host buffers, IOSurface where
+useful, Metal textures and CAMetalLayer, after live X11 works. Measure copies,
+input latency and lifecycle behavior first. Presenting CPU-rendered pixels with
+Metal will remain software application rendering. Wayland/Xwayland require
+separate FD/shared-buffer lifetime work; true guest GPU work requires an explicit
+guest-to-host graphics protocol and measured Apple GPU execution.
 
-Metal uploading/presenting CPU pixels is **software rendering with Metal
-presentation**, not Linux application GPU acceleration. Wayland/Xwayland require
-separate shared-buffer and FD lifetime work; they follow working X11.
+## Xios reference
 
-## Xios reference findings
-
-Reference revision and license are recorded in [UPSTREAM.md](../UPSTREAM.md).
-`x11/apps/Xios/Sources/XScreen.swift` maps UIKit touch/pointer/text input and owns
-the display presentation. `XSurface.c` receives IOSurface Mach ports.
-`x11/wayland/iosc_iosurface.c` implements an IOSurface wl_buffer protocol;
-`iosc_input.c` handles compositor input; Xwayland/ANGLE provide native GLES/Metal
-rendering for recompiled iOS programs. Surface validation, geometry ownership,
-input protocol separation and GPU completion fences are useful design ideas.
-Task-port lookup, jailbreak daemons/entitlements, Procursus binaries and `/var/jb`
-are excluded. Linpad's clients remain ordinary Linux AArch64 ELF applications.
+Reference revision/license are in [UPSTREAM.md](../UPSTREAM.md). XScreen.swift's
+input/presentation boundary, XSurface.c's surface handling, and the Wayland seat,
+buffer and ANGLE presentation design informed the research. No Xios code was
+copied. Task-port lookup, jailbreak daemons/entitlements, Procursus binaries and
+`/var/jb` are excluded; Linpad clients remain ordinary Linux AArch64 programs.

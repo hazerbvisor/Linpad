@@ -29,3 +29,15 @@ Tests should not mutate the user's primary filesystem: use disposable rootfs cop
 The imported `make perf-bench` measures ARM64 Linux-host runtime behavior;
 its reports now default to repo-relative `build-data/reports`. It is not an iPad
 benchmark, and the performance CPU pin must be set for the actual host.
+
+## Current X11 proof costs
+
+The experimental guest loop captures a full 800×600 XWD frame every 500 ms; the
+host polls at 500 ms, skips byte-identical frames and queues at most one decoded
+frame for UIKit. The 2 FPS scheduling ceiling is not a measured device result.
+Copies include guest XWD serialization/file IO, host read, CPU RGB-to-RGBA decode
+and CoreGraphics image presentation. The retained input mailbox caps at 64 KiB
+(plus a small stop/release reserve); restart the session when full. This is a
+short correctness experiment, not a desktop performance target. Measure the
+actual interpreter cost, redraw/input latency and battery impact before replacing
+it with damage tracking, direct buffers and eventually Metal presentation.

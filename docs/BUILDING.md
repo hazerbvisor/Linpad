@@ -1,8 +1,9 @@
 # Building Linpad
 
 **Working:** ARM64 Linux cross-build and build-host fakefs packaging.
-**Unverified:** Apple compilation, signing, installation and app runtime.
-No IPA or iPad GUI was produced in the bootstrap session.
+**User-reported working:** installed terminal app after the startup fix.
+**Experimental:** new X11 viewer; its full Xcode build and iPad GUI execution are
+unverified here. See the validation record for independent host evidence.
 
 ## Checkout and dependencies
 
@@ -94,7 +95,7 @@ The YAML passed Codemagic's official JSON schema, all shell steps passed syntax
 checks, and a failing build control retained its error status/log through `tee`.
 
 1. Connect `hazerbvisor/Linpad` in Codemagic and use its repository YAML configuration.
-2. Select `fix/visible-startup` to test the startup/display fixes before their PR is
+2. Select `feature/phase1-x11` to test the experimental GUI before its PR is
    merged; afterward select `main`.
 3. Start workflow `linpad-ios-unsigned` manually. No automatic triggers are configured.
 4. Download `Linpad-unsigned.ipa`, `xcodebuild.log`, `build-errors.log`, the toolchain/dependency logs
@@ -113,7 +114,9 @@ PC/SP and exception-status helpers without installing handlers or enabling JIT.
 A separate native control checks typed syscall argument/return widths and all
 18 legacy socket mappings, including guest-copy faults, with undefined-behavior
 sanitization. These controls are not Alpine execution results. After Ninja,
-compiled runtime gadget symbols are checked for duplicate definitions.
+compiled runtime gadget symbols are checked for duplicate definitions. A native
+XWD/file-bridge control also checks format bounds, malformed events, symlink/
+hardlink/FIFO rejection and mailbox limits under address/undefined sanitizers.
 
 Meson now receives explicit SDK and deployment flags for both compile and link
 steps. The app explicitly links Apple's SDK SQLite library used by fakefs;
@@ -221,12 +224,16 @@ boots Alpine nor simulates ARM64 instructions.
 
 ## GUI prerequisites and evidence
 
-Only after the app's CLI baseline works, copy the checkout's optional scripts and
-`tests/linpad` into a guest-visible directory (normal sandbox document import or a
-checked app-owned bind mount), then follow [GUI_COMPATIBILITY.md](GUI_COMPATIBILITY.md).
-The checked-in scripts are not injected into every user's rootfs. A future
-integration can provide an explicit guest installer from app resources after
-its build and package behavior is verified.
+The optional installer and live session scripts are now bundled in rootfs overlay
+version 6, at `/usr/share/linpad/install-x11.sh` and `x11-session.sh`. Existing roots
+receive this small overlay on boot; packages are installed only when requested.
+Follow [the device instructions](GUI_ARCHITECTURE.md#try-on-ipad). The GUI viewer
+uses the existing gear menu and retains its session when returning to Terminal.
+
+The deeper syscall probes and headless capture remain available from the checkout:
+copy `scripts` and `tests/linpad` into a guest-visible directory, then follow
+[GUI_COMPATIBILITY.md](GUI_COMPATIBILITY.md). Their native Linux control results
+are not proof of Alpine execution under Linpad.
 
 ## Startup and sideloading
 
@@ -264,5 +271,5 @@ python3 tests/linpad/terminal-frontend.py
 
 This checks the real bundled classic frontend's ready message, Canvas pixels,
 nonzero dimensions and JavaScript/missing-resource error reporting. It feeds
-control text, not a Linux process. Signed on-iPad Alpine execution is still the
-next required check.
+control text, not a Linux process. The user now reports the installed app working; independently recorded device
+CLI/GUI evidence is still needed.

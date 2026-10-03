@@ -12,17 +12,19 @@ QEMU system emulation, Hypervisor.framework, a booted Linux kernel, or x86 Linux
 emulation. The default execution backend uses precompiled ARM64 gadgets; JIT,
 jailbreak, kernel exploits and private-framework additions are not required.
 
-Current status: **Experimental bootstrap**. The ARM64 Linux CLI and runtime
-libraries have been cross-compiled; rootfs packaging works on the build host.
-An Apple build and Alpine launch inside the app have not yet been verified.
-There is no visible Linux GUI, graphical input bridge, Metal display presenter,
-Wayland compositor or guest GPU acceleration in Linpad yet.
+Current status: **Experimental CLI and X11 proof of concept**. After the startup
+fix, the user reports the app working on iPad. This development host independently
+verified ARM64 cross-compilation and terminal assets, but cannot verify device boot.
+An optional GUI screen now presents real guest Xvfb software snapshots and sends
+XTEST input. Native Linux host controls passed; **Alpine GUI execution and visible
+interactive output on iPad are still unverified**. There is no Metal display
+presenter, Wayland compositor or guest GPU acceleration.
 
 Start with [building](docs/BUILDING.md), [validation evidence](docs/BOOTSTRAP_VALIDATION.md),
-and [the roadmap](docs/ROADMAP.md). Optional scripts can install X11 test packages
-into a disposable guest and capture a real xclock window through Xvfb when the
-runtime is available. A headless capture does not meet the iPad GUI milestone.
-The terminal-only base filesystem is kept small.
+and [the roadmap](docs/ROADMAP.md). To test the new window path, use
+[the X11 device instructions](docs/GUI_ARCHITECTURE.md#try-on-ipad).
+The optional installer adds ordinary Alpine AArch64 xclock/xeyes/xterm and Xvfb;
+GUI packages stay out of the terminal-only base filesystem.
 
 - [Codemagic unsigned build workflow](codemagic.yaml) — [setup](docs/BUILDING.md#codemagic-unsigned-build)
 - [Prebuilt dependencies and source rebuilds](docs/PREBUILT_DEPENDENCIES.md)

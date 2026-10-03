@@ -28,8 +28,20 @@
 			<key>src</key>
 			<string>files/etc/resolv.conf</string>
 		</dict>
+		<dict>
+			<key>dst</key>
+			<string>/usr/share/linpad/install-x11.sh</string>
+			<key>src</key>
+			<string>files/usr/share/linpad/install-x11.sh</string>
+		</dict>
+		<dict>
+			<key>dst</key>
+			<string>/usr/share/linpad/x11-session.sh</string>
+			<key>src</key>
+			<string>files/usr/share/linpad/x11-session.sh</string>
+		</dict>
 	</array>
 	<key>version</key>
-	<integer>5</integer>
+	<integer>6</integer>
 </dict>
 </plist>

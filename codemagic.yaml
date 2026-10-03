@@ -56,7 +56,7 @@ workflows:
             -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
             -std=gnu11 -Wall -Wextra -Werror -fsyntax-only -I. \
             tests/linpad/host-context.c
-      - name: Check syscall dispatch and sideloaded storage
+      - name: Check syscall dispatch, storage and display boundaries
         script: |
           #!/bin/bash
           set -euo pipefail
@@ -74,6 +74,11 @@ workflows:
             -Wall -Wextra -Werror -I. tests/linpad/storage-fallback.m app/AppGroup.m \
             -framework Foundation -o artifacts/storage-fallback-check
           artifacts/storage-fallback-check
+          xcrun --sdk macosx clang -arch arm64 -std=gnu11 -O2 \
+            -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=all \
+            -I. tests/linpad/display.c app/Display/Surface/XWD.c \
+            app/Display/DisplayServer/FileBridge.c -o artifacts/display-check
+          artifacts/display-check
       - name: Verify prebuilt artifacts and regression checks
         script: |
           #!/bin/bash
