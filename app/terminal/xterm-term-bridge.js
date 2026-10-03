@@ -30,11 +30,11 @@
     const { Terminal, FitAddon, WebLinksAddon, LigaturesAddon } = window.xtermModules || {};
     const { CanvasAddon } = window.CanvasAddon || {};
     if (!Terminal || !FitAddon || !WebLinksAddon || !LigaturesAddon) {
-        window.__terminalBootstrapLog?.('terminal xterm modules were not loaded');
+        window.__terminalBootstrapError?.('terminal xterm modules were not loaded');
         return;
     }
     if (!CanvasAddon) {
-        window.__terminalBootstrapLog?.('terminal xterm canvas addon was not loaded');
+        window.__terminalBootstrapError?.('terminal xterm canvas addon was not loaded');
         return;
     }
 

@@ -13,17 +13,25 @@
         }
     };
     window.__terminalBootstrapLog = log;
+    const fail = (message) => {
+        log(message);
+        try {
+            window.webkit?.messageHandlers?.frontendError?.postMessage(message);
+        } catch (error) {
+        }
+    };
+    window.__terminalBootstrapError = fail;
     window.addEventListener('error', (event) => {
-        log(`terminal bootstrap error: ${event.message} @ ${event.filename}:${event.lineno}:${event.colno}`);
+        fail(`terminal bootstrap error: ${event.message} @ ${event.filename}:${event.lineno}:${event.colno}`);
     });
     window.addEventListener('unhandledrejection', (event) => {
-        log(`terminal bootstrap rejection: ${event.reason?.stack || event.reason}`);
+        fail(`terminal bootstrap rejection: ${event.reason?.stack || event.reason}`);
     });
 })();
 </script>
 <script src="xterm-vendor/xterm-classic.js"
-    onerror="window.__terminalBootstrapLog && window.__terminalBootstrapLog('terminal xterm classic bundle failed to load')"></script>
+    onerror="window.__terminalBootstrapError && window.__terminalBootstrapError('terminal xterm classic bundle failed to load')"></script>
 <script src="xterm-vendor/addon-canvas.js"
-    onerror="window.__terminalBootstrapLog && window.__terminalBootstrapLog('terminal xterm canvas addon failed to load')"></script>
+    onerror="window.__terminalBootstrapError && window.__terminalBootstrapError('terminal xterm canvas addon failed to load')"></script>
 <script src="xterm-term-bridge.js"
-    onerror="window.__terminalBootstrapLog && window.__terminalBootstrapLog('terminal xterm bridge script failed to load')"></script>
+    onerror="window.__terminalBootstrapError && window.__terminalBootstrapError('terminal xterm bridge script failed to load')"></script>
