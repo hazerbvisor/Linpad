@@ -5,6 +5,15 @@
 #import "../Roots.h"
 #include <math.h>
 
+// Reuse the guest session when returning from Terminal to the X11 viewer.
+static NSString *const LinpadX11SessionKey = @"LinpadX11ActiveSessionID";
+
+static BOOL LinpadValidSessionID(NSString *identifier) {
+    if (identifier.length != 32) return NO;
+    NSCharacterSet *invalid = [[NSCharacterSet characterSetWithCharactersInString:@"0123456789abcdef"] invertedSet];
+    return [identifier rangeOfCharacterFromSet:invalid].location == NSNotFound;
+}
+
 @interface LinpadX11ViewController ()
 @property LinpadDisplaySession *session;
 @property NSString *identifier;
@@ -22,7 +31,13 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.active=YES;
-    self.identifier=[[NSUUID.UUID.UUIDString stringByReplacingOccurrencesOfString:@"-" withString:@""] lowercaseString];
+    NSString *saved = [NSUserDefaults.standardUserDefaults stringForKey:LinpadX11SessionKey];
+    if (LinpadValidSessionID(saved)) {
+        self.identifier = saved;
+    } else {
+        self.identifier = [[NSUUID.UUID.UUIDString stringByReplacingOccurrencesOfString:@"-" withString:@""] lowercaseString];
+        [NSUserDefaults.standardUserDefaults setObject:self.identifier forKey:LinpadX11SessionKey];
+    }
     self.title=@"Linux X11 — experimental";
     self.view.backgroundColor=UIColor.systemBackgroundColor;
     self.navigationItem.leftBarButtonItem=[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(close:)];
@@ -106,7 +121,14 @@
     self.status.text=@"GUI report copied. Nothing was uploaded.";
 }
 - (void)returnToTerminal:(id)sender { (void)sender; [self.session sendEvent:@"release\n"]; [self dismissViewControllerAnimated:YES completion:nil]; }
-- (void)close:(id)sender { (void)sender; self.active=NO; self.finished=YES; [self.session stop]; [self dismissViewControllerAnimated:YES completion:nil]; }
+- (void)close:(id)sender {
+    (void)sender;
+    self.active=NO; self.finished=YES;
+    if ([[NSUserDefaults.standardUserDefaults stringForKey:LinpadX11SessionKey] isEqualToString:self.identifier])
+        [NSUserDefaults.standardUserDefaults removeObjectForKey:LinpadX11SessionKey];
+    [self.session stop];
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
 - (void)releaseKeys:(NSNotification *)note { (void)note; [self.session sendEvent:@"release\n"]; [self.session pause]; }
 - (void)foreground:(NSNotification *)note { (void)note; if (self.view.window && self.active) [self.session resume]; }
 - (BOOL)point:(CGPoint)point x:(int *)x y:(int *)y {
@@ -146,5 +168,9 @@
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event { (void)event; [self keys:presses down:YES]; }
 - (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event { (void)event; [self keys:presses down:NO]; }
 - (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event { (void)presses; (void)event; [self.session sendEvent:@"release\n"]; }
-- (void)dealloc { [NSNotificationCenter.defaultCenter removeObserver:self]; [self.session stop]; }
+- (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+    // Dismissing to Terminal must not send "stop" to the running guest.
+    // Explicit Close above is the only action that ends the X11 session.
+}
 @end
